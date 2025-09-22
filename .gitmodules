@@ -1,0 +1,4 @@
+[submodule "binary/garrysmod_common"]
+	path = binary/garrysmod_common
+	url = https://github.com/danielga/garrysmod_common
+	branch = x86-64-support-sourcesdk
