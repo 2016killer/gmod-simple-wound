@@ -5,8 +5,9 @@
 
 static const bool g_bSkinning		= SKINNING ? true : false;
 
-float4x4 mWoundTransform	:  register( SHADER_SPECIFIC_CONST_0 );
+float4x4 mWoundTransform		:  register( SHADER_SPECIFIC_CONST_0 );
 float4x4 mWoundTransformInvert	:  register( SHADER_SPECIFIC_CONST_4 );
+float3 vWoundSize				:  register( SHADER_SPECIFIC_CONST_8 );
 
 struct VS_INPUT
 {
@@ -36,12 +37,17 @@ VS_OUTPUT main( const VS_INPUT v )
 	o.vProjectedTexCoord = vLocalPos.yz;
 	o.fDist = fDist;
 
-	float4 vPosNormal = mul( 
+	float4 vPosWound = mul( 
 		float4(vLocalPos.xyz / max(fDist, 1e-6), 1), 
 		mWoundTransform 
 	);
+	vPosWound.w = 1;
 	
-	float4 vPosition = fDist < 1.0 ? vPosNormal : v.vPos;
+	float mask = step(fDist, vWoundSize.x); 
+
+	float4 vPosition = lerp(v.vPos, vPosWound, mask);
+
+	
 	float3 worldPos;
 	SkinPosition( 
 		g_bSkinning, 

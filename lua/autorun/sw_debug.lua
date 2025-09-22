@@ -54,14 +54,14 @@ if CLIENT then
     local ellipsoid = Matrix()
     ellipsoid:SetTranslation(Vector(0, 10, 55))
     ellipsoid:SetScale(Vector(15, 10, 15))
-
+    
     local wireframe = Material('models/wireframe')
     hook.Add('PostDrawOpaqueRenderables', 'test', function()
         render.SetMaterial(wireframe)
         SimpWound.DrawEllipsoid(ellipsoid, 16)
     end)
 
-
+    
     local testmaterial = CreateMaterial(
         'simplewound_test', 
         'SimpWound'

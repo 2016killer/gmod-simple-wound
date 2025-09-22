@@ -1,14 +1,14 @@
 #include "BaseVSShader.h"
 
-#include "shaders/inc/SimpWound_vs30.inc"
-#include "shaders/inc/SimpWound_ps30.inc"
+#include "shaders/inc/SimpWoundVertexLit_vs30.inc"
+#include "shaders/inc/SimpWoundVertexLit_ps30.inc"
 
 #include <istudiorender.h>
 
-BEGIN_VS_SHADER(SimpWound, "Help for SimpWound")
+BEGIN_VS_SHADER(SimpWoundVertexLit, "Help for SimpWoundVertexLit")
 	SHADER_PARAM(WOUNDTRANSFORM, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform based on pre-skinned space")
 	SHADER_PARAM(WOUNDTRANSFORMINVERT, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform invert based on pre-skinned space")
-	SHADER_PARAM(WOUNDSIZE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0.5]", "Wound size, x: deformed radius, y: Additive splash radius, z: Projected color multiplier")
+	SHADER_PARAM(WOUNDSIZE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 2]", "Wound size, x: deformed radius, y: Additive splash radius, z: Projected color multiplier")
 
 	SHADER_PARAM(DEFORMEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Deformed part texture")
 	SHADER_PARAM(PROJECTEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "sw/blood", "Projected texture")
@@ -38,7 +38,7 @@ SHADER_INIT_PARAMS()
 
 	if (!params[WOUNDSIZE]->IsDefined())
 	{
-		params[WOUNDSIZE]->SetVecValue(1, 0.5, 0.5);
+		params[WOUNDSIZE]->SetVecValue(1, 0.5, 2);
 	}
 }
 
