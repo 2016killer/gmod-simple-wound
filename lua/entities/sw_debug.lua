@@ -36,24 +36,29 @@ end
 
 if CLIENT then
     local ellipsoid = Matrix()
-    ellipsoid:SetTranslation(Vector(0, 10, 55))
-    ellipsoid:SetScale(Vector(5, 10, 5))
+    ellipsoid:SetTranslation(Vector(0, -12, 50))
+    ellipsoid:SetScale(Vector(10, 15, 10))
 
 	function ENT:Initialize()
-		local materialname = string.format('simplewound_%d', self:EntIndex())
-		local material = CreateMaterial(
-			materialname, 
-			'SimpWound'
-		)
+		local ragdoll = self:GetRagdoll()
+		for i, mat in pairs(ragdoll:GetMaterials()) do
+			local idx = i - 1
 
-		material:SetTexture('$basetexture', 'models/breen/breen_sheet')
-		material:SetTexture('$projectedtexture', 'models/flesh')
-		material:SetTexture('$deformedtexture', 'models/flesh')
-		material:SetMatrix('$woundtransform', ellipsoid)
-		material:SetMatrix('$woundtransforminvert', ellipsoid:GetInverse())
-		material:SetVector('$woundsize_blendmode', Vector(1, 0.5, 0))
+			local materialname = string.format('simplewound_%d_%d', self:EntIndex(), idx)
+			local material = CreateMaterial(
+				materialname, 
+				'SimpWound'
+			)
 
-		self:GetRagdoll():SetMaterial('!'..materialname)
+			material:SetTexture('$basetexture', mat)
+			material:SetTexture('$projectedtexture', 'models/flesh')
+			material:SetTexture('$deformedtexture', 'models/flesh')
+			material:SetMatrix('$woundtransform', ellipsoid)
+			material:SetMatrix('$woundtransforminvert', ellipsoid:GetInverse())
+			material:SetVector('$woundsize_blendmode', Vector(1, 0.5, 0))
+
+			ragdoll:SetSubMaterial(idx, '!'..materialname)
+		end
 	end
 
 	function ENT:Draw()
