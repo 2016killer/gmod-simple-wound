@@ -63,10 +63,10 @@ SHADER_DRAW
 		pShaderShadow->EnableTexture(SHADER_SAMPLER0, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER1, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER2, true);
-		pShaderShadow->EnableTexture(SHADER_SAMPLER3, true);
 
 		int fmt = VERTEX_POSITION | VERTEX_FORMAT_COMPRESSED;
-		pShaderShadow->VertexShaderVertexFormat(fmt, 1, 0, 0);
+		int pTexCoordDim[1] = { 2 };
+		pShaderShadow->VertexShaderVertexFormat(fmt, 1, pTexCoordDim, 0);
 
 		DECLARE_STATIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
 		SET_STATIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
@@ -91,9 +91,6 @@ SHADER_DRAW
 			MaterialFogMode_t fogType = pShaderAPI->GetSceneFogMode();
 			int fogIndex = (fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z) ? 1 : 0;
 
-			LightState_t lightState = { 0, false, false };
-			pShaderAPI->GetDX9LightState(&lightState);
-			
 
 			DECLARE_DYNAMIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
 			SET_DYNAMIC_VERTEX_SHADER_COMBO(DOWATERFOG, fogIndex);
@@ -101,19 +98,12 @@ SHADER_DRAW
 			SET_DYNAMIC_VERTEX_SHADER_COMBO(COMPRESSED_VERTS, (int)vertexCompression);
 			SET_DYNAMIC_VERTEX_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_vs30);
 
-			DECLARE_DYNAMIC_PIXEL_SHADER(SimpWoundVertexLit_ps30);
-			SET_DYNAMIC_PIXEL_SHADER_COMBO(NUM_LIGHTS, lightState.m_nNumLights);
-			SET_DYNAMIC_PIXEL_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_ps30);
+			//DECLARE_DYNAMIC_PIXEL_SHADER(SimpWoundVertexLit_ps30);
+			//SET_DYNAMIC_PIXEL_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_ps30);
 			
 		
 	
-			const float diffuseModulation[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-			DynamicCmdsOut.SetPixelShaderConstant(4, diffuseModulation, 1);
 			DynamicCmdsOut.SetPixelShaderFogParams(3);
-
-			DynamicCmdsOut.BindStandardTexture(SHADER_SAMPLER3, TEXTURE_NORMALIZATION_CUBEMAP_SIGNED);
-			DynamicCmdsOut.SetPixelShaderStateAmbientLightCube(5);
-			DynamicCmdsOut.CommitPixelShaderLighting(11);
 
 
 			bool bWriteDepthToAlpha = pShaderAPI->ShouldWriteDepthToDestAlpha();

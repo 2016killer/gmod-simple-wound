@@ -19,7 +19,7 @@
 class SimpWoundVertexLit_ps30_Static_Index
 {
 public:
-	SimpWoundVertexLit_ps30_Static_Index(  )
+	SimpWoundVertexLit_ps30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
 	{
 	}
 
@@ -34,34 +34,16 @@ public:
 
 class SimpWoundVertexLit_ps30_Dynamic_Index
 {
-	unsigned int m_nNUM_LIGHTS : 3;
-#ifdef _DEBUG
-	bool m_bNUM_LIGHTS : 1;
-#endif	// _DEBUG
 public:
-	void SetNUM_LIGHTS( int i )
+	SimpWoundVertexLit_ps30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
 	{
-		Assert( i >= 0 && i <= 4 );
-		m_nNUM_LIGHTS = i;
-#ifdef _DEBUG
-		m_bNUM_LIGHTS = true;
-#endif	// _DEBUG
-	}
-
-	SimpWoundVertexLit_ps30_Dynamic_Index(  )
-	{
-		m_nNUM_LIGHTS = 0;
-#ifdef _DEBUG
-		m_bNUM_LIGHTS = false;
-#endif	// _DEBUG
 	}
 
 	int GetIndex() const
 	{
-		Assert( m_bNUM_LIGHTS );
-		return ( 1 * m_nNUM_LIGHTS ) + 0;
+		return 0;
 	}
 };
 
-#define shaderDynamicTest_SimpWoundVertexLit_ps30 psh_forgot_to_set_dynamic_NUM_LIGHTS
+#define shaderDynamicTest_SimpWoundVertexLit_ps30 1
 

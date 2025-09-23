@@ -16,9 +16,14 @@ struct VS_INPUT
 	float4 vPos						: POSITION;
 	float4 vBoneWeights				: BLENDWEIGHT;
 	float4 vBoneIndices				: BLENDINDICES;
+	float3 vSpecular				: COLOR1;
 
 	float4 vNormal					: NORMAL;
 	float2 vTexCoord0				: TEXCOORD0;
+
+	// Position and normal/tangent deltas
+	float3 vPosFlex			: POSITION1;
+	float3 vNormalFlex		: NORMAL1;
 };
 
 struct VS_OUTPUT
@@ -26,10 +31,8 @@ struct VS_OUTPUT
     float4 projPos												: POSITION;	
 	float2 baseTexCoord											: TEXCOORD0;
 	float3 vWoundData 											: TEXCOORD1; 
-	float3 vWorldNormal											: TEXCOORD2;	// World-space normal
+	float4 color												: TEXCOORD2;	
 	float4 worldPos_projPosZ									: TEXCOORD3;
-	float3 lightAtten											: TEXCOORD4;
-	float3 detailTexCoord_atten3								: TEXCOORD5;
 	float4 fogFactorW											: COLOR1;
 
 #if !defined( _X360 )
@@ -69,6 +72,8 @@ VS_OUTPUT main( const VS_INPUT v )
 	DecompressVertex_Normal( v.vNormal, vNormal );
 
 
+	ApplyMorph( v.vPosFlex, v.vNormalFlex, vPosition.xyz, vNormal );
+
 	// Perform skinning
 	float3 worldNormal, worldPos;
 	SkinPositionAndNormal( 
@@ -78,8 +83,6 @@ VS_OUTPUT main( const VS_INPUT v )
 		worldPos, worldNormal );
 
 	worldNormal = normalize( worldNormal );
-	
-	o.vWorldNormal.xyz = worldNormal.xyz;
 
 
 	// Transform into projection space
@@ -96,15 +99,10 @@ VS_OUTPUT main( const VS_INPUT v )
 	o.worldPos_projPosZ = float4( worldPos, vProjPos.z );
 
 
-	// Scalar light attenuation
-	o.lightAtten.x = GetVertexAttenForLight( worldPos, 0, true );
-	o.lightAtten.y = GetVertexAttenForLight( worldPos, 1, true );
-	o.lightAtten.z = GetVertexAttenForLight( worldPos, 2, true );
-	o.detailTexCoord_atten3.z = GetVertexAttenForLight( worldPos, 3, true );
-	
+	o.color.xyz = DoLighting( worldPos, worldNormal, v.vSpecular, true, true, true );
 
+	
 	o.baseTexCoord.xy = v.vTexCoord0.xy;
-	o.detailTexCoord_atten3.xy = v.vTexCoord0.xy;
 
 	return o;
 }

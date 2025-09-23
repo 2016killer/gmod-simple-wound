@@ -1,14 +1,9 @@
-// DYNAMIC: "NUM_LIGHTS"				"0..4"						[ps30]
-
-
 #include "common_ps_fxc.h"
 #include "common_vertexlitgeneric_dx9.h"
 
 sampler BaseTextureSampler		: register( s0 );
 sampler DeformedTextureSampler	: register( s1 );
 sampler ProjTextureSampler		: register( s2 );
-sampler NormalizeSampler		: register( s3 );
-sampler DiffuseWarpSampler		: register( s4 );	// Lighting warp sampler (1D texture for diffuse lighting modification)
 
 const float3 woundSize_blendMode	: register(c0);
 
@@ -21,41 +16,38 @@ const float4 g_ShaderControls		: register( c2 );
 
 const float4 g_FogParams			: register( c3 );
 
-const float4 g_DiffuseModulation	: register( c4 );
-
-const float3 cAmbientCube[6]		: register( c5 );
-PixelShaderLightInfo cLightInfo[3]	: register( c11 );
-
 struct PS_INPUT
 {
-	float4 baseTexCoord			: TEXCOORD0;
-	float3 vWoundData 											: TEXCOORD1; 
+	float4 baseTexCoord				: TEXCOORD0;
+	float3 vWoundData 				: TEXCOORD1; 
 
-	float3 vWorldNormal											: TEXCOORD2;	// World-space normal
-	float4 worldPos_projPosZ									: TEXCOORD3;
-	float3 lightAtten											: TEXCOORD4;
-	float3 detailTexCoord_atten3								: TEXCOORD5;
+	float4 color					: TEXCOORD2;	
+	float4 worldPos_projPosZ		: TEXCOORD3;
 
-	float4 fogFactorW											: COLOR1;
+	float4 fogFactorW				: COLOR1;
 };
 
 
-// Calculate both types of Fog and lerp to get result
+// Calculate unified fog
 float CalcPixelFogFactorConst( float fPixelFogType, const float4 fogParams, const float flEyePosZ, const float flWorldPosZ, const float flProjPosZ )
 {
-	float fRangeFog = CalcRangeFog( flProjPosZ, fogParams.x, fogParams.z, fogParams.w );
-	float fHeightFog = CalcWaterFogAlpha( fogParams.y, flEyePosZ, flWorldPosZ, flProjPosZ, fogParams.w );
-	return lerp( fRangeFog, fHeightFog, fPixelFogType );
+	float flDepthBelowWater = fPixelFogType*fogParams.y - flWorldPosZ;  // above water = negative, below water = positive
+	float flDepthBelowEye = fPixelFogType*flEyePosZ - flWorldPosZ;		// above eye = negative, below eye = positive
+	// if fPixelFogType == 0, then flDepthBelowWater == flDepthBelowEye and frac will be 1
+	float frac = (flDepthBelowEye == 0) ? 1 : saturate(flDepthBelowWater/flDepthBelowEye);
+	return saturate( min(fogParams.z, flProjPosZ * fogParams.w * frac - fogParams.x) );
 }
 
 // Blend both types of Fog and lerp to get result
 float3 BlendPixelFogConst( const float3 vShaderColor, float pixelFogFactor, const float3 vFogColor, float fPixelFogType )
 {
-	pixelFogFactor = saturate( pixelFogFactor );
-	float3 fRangeResult = lerp( vShaderColor.rgb, vFogColor.rgb, pixelFogFactor * pixelFogFactor ); //squaring the factor will get the middle range mixing closer to hardware fog
-	float3 fHeightResult = lerp( vShaderColor.rgb, vFogColor.rgb, saturate( pixelFogFactor ) );
-	return lerp( fRangeResult, fHeightResult, fPixelFogType );
+	//float3 fRangeResult = lerp( vShaderColor.rgb, vFogColor.rgb, pixelFogFactor * pixelFogFactor ); //squaring the factor will get the middle range mixing closer to hardware fog
+	//float3 fHeightResult = lerp( vShaderColor.rgb, vFogColor.rgb, saturate( pixelFogFactor ) );
+	//return lerp( fRangeResult, fHeightResult, fPixelFogType );
+	pixelFogFactor = lerp( pixelFogFactor*pixelFogFactor, pixelFogFactor, fPixelFogType );
+	return lerp( vShaderColor.rgb, vFogColor.rgb, pixelFogFactor );
 }
+
 
 float4 FinalOutputConst( const float4 vShaderColor, float pixelFogFactor, float fPixelFogType, const int iTONEMAP_SCALE_TYPE, float fWriteDepthToDestAlpha, const float flProjZ )
 {
@@ -106,10 +98,7 @@ float4 main( PS_INPUT i ) : COLOR
 	static bool bAmbientLight = true;
 	static bool bDoDiffuseWarp = false;
 	static bool bHalfLambert = true;
-	int nNumLights = NUM_LIGHTS;
 
-	// Unpack four light attenuations
-	float4 vLightAtten = float4( i.lightAtten, i.detailTexCoord_atten3.z );
 
 	float4 baseColor = float4( 1.0f, 1.0f, 1.0f, 1.0f );
 	baseColor = tex2D( BaseTextureSampler, i.baseTexCoord.xy );
@@ -132,25 +121,8 @@ float4 main( PS_INPUT i ) : COLOR
 	);
 	
 
-	float3 worldSpaceNormal = normalize(i.vWorldNormal);
-
-	float3 diffuseLighting = float3(1.0, 1.0, 1.0);
-	diffuseLighting = PixelShaderDoLighting( i.worldPos_projPosZ.xyz, worldSpaceNormal,
-			float3( 0.0f, 0.0f, 0.0f ), false, bAmbientLight, vLightAtten,
-			cAmbientCube, NormalizeSampler, nNumLights, cLightInfo, bHalfLambert,
-			false, 1.0f, bDoDiffuseWarp, DiffuseWarpSampler );
-	
-
-	float3 albedo = baseColor * g_DiffuseModulation.rgb;
-
-	float alpha = baseColor.a * g_DiffuseModulation.a;
-
-
-	float3 diffuseComponent = albedo * diffuseLighting;
-
-
-
-	float3 result = diffuseComponent;
+	float alpha = baseColor.a;
+	float3 result = baseColor.rgb * i.color.rgb;
 
 	float fogFactor = CalcPixelFogFactorConst( g_fPixelFogType, g_FogParams, g_EyePos.z, i.worldPos_projPosZ.z, i.worldPos_projPosZ.w );
 	alpha = lerp( alpha, fogFactor, g_fPixelFogType * g_fWriteWaterFogToDestAlpha ); // Use the fog factor if it's height fog
