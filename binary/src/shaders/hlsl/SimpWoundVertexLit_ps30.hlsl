@@ -1,8 +1,14 @@
-#include "common_ps_fxc.h"
+// DYNAMIC: "NUM_LIGHTS"				"0..4"						[ps30]
 
-sampler BaseTextureSampler	: register( s0 );
+
+#include "common_ps_fxc.h"
+#include "common_vertexlitgeneric_dx9.h"
+
+sampler BaseTextureSampler		: register( s0 );
 sampler DeformedTextureSampler	: register( s1 );
-sampler ProjTextureSampler	: register( s2 );
+sampler ProjTextureSampler		: register( s2 );
+sampler NormalizeSampler		: register( s3 );
+sampler DiffuseWarpSampler		: register( s4 );	// Lighting warp sampler (1D texture for diffuse lighting modification)
 
 const float3 woundSize_blendMode	: register(c0);
 
@@ -17,11 +23,18 @@ const float4 g_FogParams			: register( c3 );
 
 const float4 g_DiffuseModulation	: register( c4 );
 
+const float3 cAmbientCube[6]		: register( c5 );
+PixelShaderLightInfo cLightInfo[3]	: register( c11 );
+
 struct PS_INPUT
 {
-	float4 baseTexCoord2_tangentSpaceVertToEyeVectorXY			: TEXCOORD0;
+	float4 baseTexCoord			: TEXCOORD0;
 	float3 vWoundData 											: TEXCOORD1; 
-	float4 worldPos_projPosZ									: TEXCOORD6;
+
+	float3 vWorldNormal											: TEXCOORD2;	// World-space normal
+	float4 worldPos_projPosZ									: TEXCOORD3;
+	float3 lightAtten											: TEXCOORD4;
+	float3 detailTexCoord_atten3								: TEXCOORD5;
 
 	float4 fogFactorW											: COLOR1;
 };
@@ -90,8 +103,23 @@ void SimpWound_TextureCombine(
 
 float4 main( PS_INPUT i ) : COLOR
 {
-	float4 baseColor = tex2D( BaseTextureSampler, i.baseTexCoord2_tangentSpaceVertToEyeVectorXY.xy );
-	float4 deformedColor = tex2D( DeformedTextureSampler, i.baseTexCoord2_tangentSpaceVertToEyeVectorXY.xy );
+	static bool bAmbientLight = true;
+	static bool bDoDiffuseWarp = false;
+	static bool bHalfLambert = true;
+	int nNumLights = NUM_LIGHTS;
+
+	// Unpack four light attenuations
+	float4 vLightAtten = float4( i.lightAtten, i.detailTexCoord_atten3.z );
+
+	float4 baseColor = float4( 1.0f, 1.0f, 1.0f, 1.0f );
+	baseColor = tex2D( BaseTextureSampler, i.baseTexCoord.xy );
+
+// #if DETAILTEXTURE
+// 	float4 detailColor = tex2D( DetailSampler, i.detailTexCoord_atten3.xy );
+// 	baseColor = TextureCombine( baseColor, detailColor, DETAIL_BLEND_MODE, g_DetailBlendFactor );
+// #endif
+
+	float4 deformedColor = tex2D( DeformedTextureSampler, i.baseTexCoord.xy );
 	float4 projColor = tex2D( ProjTextureSampler, i.vWoundData.xy );
 
 
@@ -103,13 +131,28 @@ float4 main( PS_INPUT i ) : COLOR
 		baseColor
 	);
 	
-	float4 result = baseColor;
 
-	// float alpha = g_DiffuseModulation.a * baseColor.a;
-	float alpha = baseColor.a;
+	float3 worldSpaceNormal = normalize(i.vWorldNormal);
+
+	float3 diffuseLighting = float3(1.0, 1.0, 1.0);
+	diffuseLighting = PixelShaderDoLighting( i.worldPos_projPosZ.xyz, worldSpaceNormal,
+			float3( 0.0f, 0.0f, 0.0f ), false, bAmbientLight, vLightAtten,
+			cAmbientCube, NormalizeSampler, nNumLights, cLightInfo, bHalfLambert,
+			false, 1.0f, bDoDiffuseWarp, DiffuseWarpSampler );
+	
+
+	float3 albedo = baseColor * g_DiffuseModulation.rgb;
+
+	float alpha = baseColor.a * g_DiffuseModulation.a;
+
+
+	float3 diffuseComponent = albedo * diffuseLighting;
+
+
+
+	float3 result = diffuseComponent;
 
 	float fogFactor = CalcPixelFogFactorConst( g_fPixelFogType, g_FogParams, g_EyePos.z, i.worldPos_projPosZ.z, i.worldPos_projPosZ.w );
 	alpha = lerp( alpha, fogFactor, g_fPixelFogType * g_fWriteWaterFogToDestAlpha ); // Use the fog factor if it's height fog
 	return FinalOutputConst( float4( result.rgb, alpha ), fogFactor, g_fPixelFogType, TONEMAP_SCALE_LINEAR, g_fWriteDepthToAlpha, i.worldPos_projPosZ.w );
-	// return baseColor;
 }

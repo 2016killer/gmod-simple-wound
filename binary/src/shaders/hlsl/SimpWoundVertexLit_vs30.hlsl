@@ -18,30 +18,18 @@ struct VS_INPUT
 	float4 vBoneIndices				: BLENDINDICES;
 
 	float4 vNormal					: NORMAL;
-	float3 vSpecular				: COLOR1;
-
-	float3 vTangentS		: TANGENT;
-	float3 vTangentT		: BINORMAL;
-	float4 vUserData		: TANGENT;
-
-	float4 vTexCoord0		: TEXCOORD0;
-	float4 vTexCoord1		: TEXCOORD1;
-	float4 vTexCoord2		: TEXCOORD2;
-	float4 vTexCoord3		: TEXCOORD3;
-
+	float2 vTexCoord0				: TEXCOORD0;
 };
 
 struct VS_OUTPUT
 {
     float4 projPos												: POSITION;	
-	float4 baseTexCoord2_tangentSpaceVertToEyeVectorXY			: TEXCOORD0;
+	float2 baseTexCoord											: TEXCOORD0;
 	float3 vWoundData 											: TEXCOORD1; 
-
-	float3 vWorldNormal											: TEXCOORD3;	// World-space normal
-	float4 vWorldTangent										: TEXCOORD4;
-	float3 vWorldBinormal										: TEXCOORD5;
-	float4 worldPos_projPosZ									: TEXCOORD6;
-
+	float3 vWorldNormal											: TEXCOORD2;	// World-space normal
+	float4 worldPos_projPosZ									: TEXCOORD3;
+	float3 lightAtten											: TEXCOORD4;
+	float3 detailTexCoord_atten3								: TEXCOORD5;
 	float4 fogFactorW											: COLOR1;
 
 #if !defined( _X360 )
@@ -78,23 +66,21 @@ VS_OUTPUT main( const VS_INPUT v )
 	);
 
 	float3 vNormal;
-	float4 vTangent;
-	DecompressVertex_NormalTangent( v.vNormal, v.vUserData, vNormal, vTangent );
+	DecompressVertex_Normal( v.vNormal, vNormal );
 
 
 	// Perform skinning
-	float3 worldNormal, worldPos, worldTangentS, worldTangentT;
-	SkinPositionNormalAndTangentSpace( g_bSkinning, vPosition, vNormal, vTangent,
-		v.vBoneWeights, v.vBoneIndices, worldPos,
-		worldNormal, worldTangentS, worldTangentT );
+	float3 worldNormal, worldPos;
+	SkinPositionAndNormal( 
+		g_bSkinning, 
+		vPosition, vNormal,
+		v.vBoneWeights, v.vBoneIndices,
+		worldPos, worldNormal );
 
-	worldNormal   = normalize( worldNormal );
-	worldTangentS = normalize( worldTangentS );
-	worldTangentT = normalize( worldTangentT );
-
+	worldNormal = normalize( worldNormal );
+	
 	o.vWorldNormal.xyz = worldNormal.xyz;
-	o.vWorldTangent = float4( worldTangentS.xyz, vTangent.w );	 // Propagate binormal sign in world tangent.w
-	o.vWorldBinormal.xyz = worldTangentT.xyz;
+
 
 	// Transform into projection space
 	float4 vProjPos = mul( float4( worldPos, 1 ), cViewProj );
@@ -110,7 +96,15 @@ VS_OUTPUT main( const VS_INPUT v )
 	o.worldPos_projPosZ = float4( worldPos, vProjPos.z );
 
 
-	o.baseTexCoord2_tangentSpaceVertToEyeVectorXY.xy = v.vTexCoord0.xy;
+	// Scalar light attenuation
+	o.lightAtten.x = GetVertexAttenForLight( worldPos, 0, true );
+	o.lightAtten.y = GetVertexAttenForLight( worldPos, 1, true );
+	o.lightAtten.z = GetVertexAttenForLight( worldPos, 2, true );
+	o.detailTexCoord_atten3.z = GetVertexAttenForLight( worldPos, 3, true );
+	
+
+	o.baseTexCoord.xy = v.vTexCoord0.xy;
+	o.detailTexCoord_atten3.xy = v.vTexCoord0.xy;
 
 	return o;
 }
