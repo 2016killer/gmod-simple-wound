@@ -4,7 +4,7 @@ sampler BaseTextureSampler	: register( s0 );
 sampler DeformedTextureSampler	: register( s1 );
 sampler ProjTextureSampler	: register( s2 );
 
-const float3 woundSize	: register(c0);
+const float3 woundSize_blendMode	: register(c0);
 
 struct PS_INPUT
 {
@@ -15,7 +15,7 @@ struct PS_INPUT
 
 float4 main( PS_INPUT i ) : COLOR
 {
-	// 混合基础、投影纹理混合, 使用woundSize.xy确定投影范围, woundSize.z 决定是否开启alpha混合
+	// 混合基础、投影纹理混合, 使用 woundSize_blendMode.xy确定投影范围, woundSize_blendMode.z 决定是否开启alpha混合
 	float2 projTexCoord = i.vWoundData.xy;
 	float dist = i.vWoundData.z;
 
@@ -25,7 +25,7 @@ float4 main( PS_INPUT i ) : COLOR
 	baseColor.rgb = lerp(
 		baseColor.rgb,
 		projColor.rgb,
-		(1 - smoothstep(woundSize.x, woundSize.x + woundSize.y, dist)) * lerp(1, projColor.a, step(0.5, woundSize.z))
+		(1 - smoothstep(woundSize_blendMode.x, woundSize_blendMode.x + woundSize_blendMode.y, dist)) * lerp(1, projColor.a, step(0.5, woundSize_blendMode.z))
 	);
 
 	// 应用变形纹理
@@ -33,7 +33,7 @@ float4 main( PS_INPUT i ) : COLOR
 	baseColor = lerp(
 		baseColor,
 		deformedColor,                            
-		step(dist, woundSize.x)
+		step(dist, woundSize_blendMode.x)
 	);
 	
 	return baseColor;

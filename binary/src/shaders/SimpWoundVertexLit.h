@@ -82,15 +82,15 @@ SHADER_DRAW
 
 		VMatrix woundTransform = params[WOUNDTRANSFORM]->GetMatrixValue();
 		VMatrix woundTransformInvert;
-		const float* woundSize = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
+		const float* woundSize_blendMode = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
 
 		MatrixInverseGeneral(woundTransform, woundTransformInvert);
 
 
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);
-		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, woundSize, 1);
-		pShaderAPI->SetPixelShaderConstant(0, woundSize);
+		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, woundSize_blendMode, 1);
+		pShaderAPI->SetPixelShaderConstant(0, woundSize_blendMode);
 
 		DECLARE_DYNAMIC_VERTEX_SHADER(SimpWound_vs30);
 		SET_DYNAMIC_VERTEX_SHADER_COMBO(SKINNING, pShaderAPI->GetCurrentNumBones() > 0);

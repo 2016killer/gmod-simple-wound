@@ -5,9 +5,9 @@
 
 static const bool g_bSkinning		= SKINNING ? true : false;
 
-const float4x4 mWoundTransform		:  register( SHADER_SPECIFIC_CONST_0 );
+const float4x4 mWoundTransform			:  register( SHADER_SPECIFIC_CONST_0 );
 const float4x4 mWoundTransformInvert	:  register( SHADER_SPECIFIC_CONST_4 );
-const float3 vWoundSize				:  register( SHADER_SPECIFIC_CONST_8 );
+const float3 vWoundSize_blendMode		:  register( SHADER_SPECIFIC_CONST_8 );
 
 struct VS_INPUT
 {
@@ -41,11 +41,11 @@ VS_OUTPUT main( const VS_INPUT v )
 	);
 	vPosWound.w = 1;
 	
-	// vWoundSize.x决定变形的范围
+	// vWoundSize_blendMode.x决定变形的范围
 	float4 vPosition = lerp(
 		v.vPos, 
 		vPosWound, 
-		step(fDist, vWoundSize.x)
+		step(fDist, vWoundSize_blendMode.x)
 	);
 
 	// 蒙皮一条龙
