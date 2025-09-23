@@ -6,13 +6,13 @@
 #include <istudiorender.h>
 
 BEGIN_VS_SHADER(SimpWound, "Help for SimpWound")
+
+BEGIN_SHADER_PARAMS
 	SHADER_PARAM(WOUNDTRANSFORM, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform based on pre-skinned space")
 	SHADER_PARAM(WOUNDSIZE_BLENDMODE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0]", "Wound size, x: deformed range, y: project range, z: use projected texture alpha blend")
 
 	SHADER_PARAM(DEFORMEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Deformed part texture")
 	SHADER_PARAM(PROJECTEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "sw/blood", "Projected texture")
-BEGIN_SHADER_PARAMS
-
 END_SHADER_PARAMS
 
 
@@ -90,8 +90,6 @@ SHADER_DRAW
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, woundSize, 1);
-
-		
 		pShaderAPI->SetPixelShaderConstant(0, woundSize);
 
 		DECLARE_DYNAMIC_VERTEX_SHADER(SimpWound_vs30);
