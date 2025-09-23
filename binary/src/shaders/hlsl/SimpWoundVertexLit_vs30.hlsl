@@ -1,13 +1,15 @@
 //	DYNAMIC: "SKINNING"					"0..1"
 //  DYNAMIC: "COMPRESSED_VERTS"			"0..1"
+//	DYNAMIC: "DOWATERFOG"				"0..1"
 
 #include "common_vs_fxc.h"
 
 static const bool g_bSkinning		= SKINNING ? true : false;
+static const int g_FogType			= DOWATERFOG;
 
-const float4x4 mWoundTransform		:  register( SHADER_SPECIFIC_CONST_0 );
+const float4x4 mWoundTransform			:  register( SHADER_SPECIFIC_CONST_0 );
 const float4x4 mWoundTransformInvert	:  register( SHADER_SPECIFIC_CONST_4 );
-const float3 vWoundSize_blendMode				:  register( SHADER_SPECIFIC_CONST_8 );
+const float3 vWoundSize_blendMode		:  register( SHADER_SPECIFIC_CONST_8 );
 
 struct VS_INPUT
 {
@@ -31,9 +33,20 @@ struct VS_INPUT
 
 struct VS_OUTPUT
 {
-    float4 ProjPos												: POSITION;	
+    float4 projPos												: POSITION;	
 	float4 baseTexCoord2_tangentSpaceVertToEyeVectorXY			: TEXCOORD0;
 	float3 vWoundData 											: TEXCOORD1; 
+
+	float3 vWorldNormal											: TEXCOORD3;	// World-space normal
+	float4 vWorldTangent										: TEXCOORD4;
+	float3 vWorldBinormal										: TEXCOORD5;
+	float4 worldPos_projPosZ									: TEXCOORD6;
+
+	float4 fogFactorW											: COLOR1;
+
+#if !defined( _X360 )
+	float  fog													: FOG;
+#endif
 };
 
 
@@ -60,7 +73,7 @@ VS_OUTPUT main( const VS_INPUT v )
 	VS_OUTPUT o = ( VS_OUTPUT )0;
 
 	float4 vPosition;
-	SimpleWound_Deform(mWoundTransform, mWoundTransformInvert, vWoundSize_blendMode.x, 
+	SimpWound_Deform(mWoundTransform, mWoundTransformInvert, vWoundSize_blendMode.x, 
 		v.vPos, vPosition, o.vWoundData
 	);
 
@@ -81,11 +94,23 @@ VS_OUTPUT main( const VS_INPUT v )
 
 	o.vWorldNormal.xyz = worldNormal.xyz;
 	o.vWorldTangent = float4( worldTangentS.xyz, vTangent.w );	 // Propagate binormal sign in world tangent.w
+	o.vWorldBinormal.xyz = worldTangentT.xyz;
 
 	// Transform into projection space
 	float4 vProjPos = mul( float4( worldPos, 1 ), cViewProj );
 	o.projPos = vProjPos;
 	vProjPos.z = dot( float4( worldPos, 1 ), cViewProjZ );
+
+
+	o.fogFactorW = CalcFog( worldPos, vProjPos, g_FogType );
+#if !defined( _X360 )
+	o.fog = o.fogFactorW;
+#endif
+
+	o.worldPos_projPosZ = float4( worldPos, vProjPos.z );
+
+
+	o.baseTexCoord2_tangentSpaceVertToEyeVectorXY.xy = v.vTexCoord0.xy;
 
 	return o;
 }

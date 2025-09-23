@@ -12,7 +12,7 @@
 class SimpWound_ps30_Static_Index
 {
 public:
-	SimpWound_ps30_Static_Index(  )
+	SimpWound_ps30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
 	{
 	}
 
@@ -28,7 +28,7 @@ public:
 class SimpWound_ps30_Dynamic_Index
 {
 public:
-	SimpWound_ps30_Dynamic_Index(  )
+	SimpWound_ps30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
 	{
 	}
 
