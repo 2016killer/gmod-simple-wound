@@ -51,11 +51,11 @@ if CLIENT then
 			)
 
 			material:SetTexture('$basetexture', mat)
-			material:SetTexture('$projectedtexture', 'models/flesh')
-			material:SetTexture('$deformedtexture', 'models/flesh')
+			material:SetTexture('$projectedtexture', 'models/props_c17/paper01')
+			material:SetTexture('$deformedtexture', 'models/props_c17/paper01')
 			material:SetMatrix('$woundtransform', ellipsoid)
 			material:SetMatrix('$woundtransforminvert', ellipsoid:GetInverse())
-			material:SetVector('$woundsize_blendmode', Vector(1, 0.5, 0))
+			material:SetVector('$woundsize_blendmode', Vector(1, 0.3, 0))
 
 			ragdoll:SetSubMaterial(idx, '!'..materialname)
 		end
