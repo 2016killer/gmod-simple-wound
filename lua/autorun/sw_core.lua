@@ -50,36 +50,4 @@ if CLIENT then
             render.DrawLine(zerovec, unitz, Color(0, 0, 255, 255), false)   
         cam.PopModelMatrix()
     end
-
-    local ellipsoid = Matrix()
-    ellipsoid:SetTranslation(Vector(0, 10, 55))
-    ellipsoid:SetScale(Vector(15, 10, 15))
-
-    local wireframe = Material('models/wireframe')
-    hook.Add('PostDrawOpaqueRenderables', 'test', function()
-        render.SetMaterial(wireframe)
-        SimpWound.DrawEllipsoid(ellipsoid, 16)
-    end)
-
-
-    local testmaterial = CreateMaterial(
-        'simplewound_test', 
-        'SimpWound'
-    )
-    testmaterial:SetTexture('$basetexture', 'models/breen/breen_sheet')
-    testmaterial:SetTexture('$projectedtexture', 'models/flesh')
-    testmaterial:SetTexture('$deformedtexture', 'models/flesh')
-    testmaterial:SetMatrix('$woundtransform', ellipsoid)
-    testmaterial:SetMatrix('$woundtransforminvert', ellipsoid:GetInverse())
-    testmaterial:SetVector('$woundsize', Vector(1, 0.5, 1))
-
-    testent = testent or ClientsideModel('models/Combine_Helicopter/helicopter_bomb01.mdl')
-    testent:SetMaterial('!simplewound_test')
-
-    concommand.Add('test', function(ply)
-        local ent = ply:GetEyeTrace().Entity
-        ent:SetMaterial('!simplewound_test')
-
-        PrintTable(ent:GetMaterials())
-    end)
 end

@@ -7,12 +7,10 @@
 
 BEGIN_VS_SHADER(SimpWound, "Help for SimpWound")
 	SHADER_PARAM(WOUNDTRANSFORM, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform based on pre-skinned space")
-	SHADER_PARAM(WOUNDTRANSFORMINVERT, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform invert based on pre-skinned space")
-	SHADER_PARAM(WOUNDSIZE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0.5]", "Wound size, x: deformed radius, y: Additive splash radius, z: Projected color multiplier")
+	SHADER_PARAM(WOUNDSIZE_BLENDMODE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0]", "Wound size, x: deformed range, y: project range, z: use projected texture alpha blend")
 
 	SHADER_PARAM(DEFORMEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Deformed part texture")
 	SHADER_PARAM(PROJECTEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "sw/blood", "Projected texture")
-	
 BEGIN_SHADER_PARAMS
 
 END_SHADER_PARAMS
@@ -29,16 +27,9 @@ SHADER_INIT_PARAMS()
 		params[WOUNDTRANSFORM]->SetMatrixValue(mat);
 	}
 
-	if (!params[WOUNDTRANSFORMINVERT]->IsDefined())
+	if (!params[WOUNDSIZE_BLENDMODE]->IsDefined())
 	{
-		VMatrix mat;
-		MatrixSetIdentity(mat);
-		params[WOUNDTRANSFORMINVERT]->SetMatrixValue(mat);
-	}
-
-	if (!params[WOUNDSIZE]->IsDefined())
-	{
-		params[WOUNDSIZE]->SetVecValue(1, 0.5, 0.5);
+		params[WOUNDSIZE_BLENDMODE]->SetVecValue(1, 0.5, 0);
 	}
 }
 
@@ -71,7 +62,6 @@ SHADER_DRAW
 		pShaderShadow->EnableTexture(SHADER_SAMPLER0, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER1, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER2, true);
-		pShaderShadow->EnableTexture(SHADER_SAMPLER3, true);
 
 		int fmt = VERTEX_POSITION | VERTEX_FORMAT_COMPRESSED;
 		pShaderShadow->VertexShaderVertexFormat(fmt, 1, 0, 4);
@@ -91,8 +81,11 @@ SHADER_DRAW
 		BindTexture(SHADER_SAMPLER2, PROJECTEDTEXTURE);
 
 		VMatrix woundTransform = params[WOUNDTRANSFORM]->GetMatrixValue();
-		VMatrix woundTransformInvert = params[WOUNDTRANSFORMINVERT]->GetMatrixValue();
-		const float* woundSize = params[WOUNDSIZE]->GetVecValue();
+		VMatrix woundTransformInvert;
+		const float* woundSize = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
+		
+		MatrixInverseGeneral(woundTransform, woundTransformInvert);
+
 
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
 		pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);
