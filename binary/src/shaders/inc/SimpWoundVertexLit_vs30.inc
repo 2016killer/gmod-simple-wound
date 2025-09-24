@@ -5,18 +5,36 @@
 #include "shaderlib/cshader.h"
 class SimpWoundVertexLit_vs30_Static_Index
 {
+	unsigned int m_nFLASHLIGHT : 2;
+#ifdef _DEBUG
+	bool m_bFLASHLIGHT : 1;
+#endif	// _DEBUG
 public:
-	SimpWoundVertexLit_vs30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
+	void SetFLASHLIGHT( int i )
 	{
+		Assert( i >= 0 && i <= 1 );
+		m_nFLASHLIGHT = i;
+#ifdef _DEBUG
+		m_bFLASHLIGHT = true;
+#endif	// _DEBUG
+	}
+
+	SimpWoundVertexLit_vs30_Static_Index(  )
+	{
+		m_nFLASHLIGHT = 0;
+#ifdef _DEBUG
+		m_bFLASHLIGHT = false;
+#endif	// _DEBUG
 	}
 
 	int GetIndex() const
 	{
-		return 0;
+		Assert( m_bFLASHLIGHT );
+		return ( 8 * m_nFLASHLIGHT ) + 0;
 	}
 };
 
-#define shaderStaticTest_SimpWoundVertexLit_vs30 1
+#define shaderStaticTest_SimpWoundVertexLit_vs30 vsh_forgot_to_set_static_FLASHLIGHT
 
 
 class SimpWoundVertexLit_vs30_Dynamic_Index
@@ -57,7 +75,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_vs30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
+	SimpWoundVertexLit_vs30_Dynamic_Index(  )
 	{
 		m_nSKINNING = 0;
 		m_nCOMPRESSED_VERTS = 0;

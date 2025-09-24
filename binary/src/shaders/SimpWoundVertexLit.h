@@ -20,6 +20,7 @@ END_SHADER_PARAMS
 SHADER_INIT_PARAMS()
 {
 	SET_FLAGS2(MATERIAL_VAR2_SUPPORTS_HW_SKINNING);
+	SET_FLAGS2(MATERIAL_VAR2_LIGHTING_VERTEX_LIT);
 
 	if (!params[WOUNDTRANSFORM]->IsDefined())
 	{
@@ -60,90 +61,149 @@ SHADER_DRAW
 {
 	SHADOW_STATE
 	{
+		bool bHasFlashlight = UsingFlashlight(params);
+
+		if (bHasFlashlight)
+		{
+			pShaderShadow->EnableTexture(SHADER_SAMPLER4, true);	// Depth texture
+			pShaderShadow->SetShadowDepthFiltering(SHADER_SAMPLER4);
+			pShaderShadow->EnableTexture(SHADER_SAMPLER5, true);	// Noise map
+			pShaderShadow->EnableTexture(SHADER_SAMPLER3, true);	// Flashlight cookie
+			pShaderShadow->EnableSRGBRead(SHADER_SAMPLER3, true);
+		}
+
 		pShaderShadow->EnableTexture(SHADER_SAMPLER0, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER1, true);
 		pShaderShadow->EnableTexture(SHADER_SAMPLER2, true);
+
 
 		int fmt = VERTEX_POSITION | VERTEX_FORMAT_COMPRESSED;
 		int pTexCoordDim[1] = { 2 };
 		pShaderShadow->VertexShaderVertexFormat(fmt, 1, pTexCoordDim, 0);
 
+
 		DECLARE_STATIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
+		SET_STATIC_VERTEX_SHADER_COMBO(FLASHLIGHT, bHasFlashlight);
 		SET_STATIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
 
 		DECLARE_STATIC_PIXEL_SHADER(SimpWoundVertexLit_ps30);
+		SET_STATIC_PIXEL_SHADER_COMBO(FLASHLIGHT, bHasFlashlight);
 		SET_STATIC_PIXEL_SHADER(SimpWoundVertexLit_ps30);
 
-		DefaultFog();
+		
+		if (bHasFlashlight && !IsX360())
+		{
+			FogToBlack();
+		}
+		else
+		{
+			DefaultFog();
+		}
 	}
 	DYNAMIC_STATE
 	{
+		CCommandBufferBuilder< CFixedCommandStorageBuffer< 1000 > > DynamicCmdsOut;
 
+		BindTexture(SHADER_SAMPLER0, BASETEXTURE);
+		BindTexture(SHADER_SAMPLER1, DEFORMEDTEXTURE);
+		BindTexture(SHADER_SAMPLER2, PROJECTEDTEXTURE);
+
+
+		MaterialFogMode_t fogType = pShaderAPI->GetSceneFogMode();
+		int fogIndex = (fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z) ? 1 : 0;
+
+
+		DECLARE_DYNAMIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
+		SET_DYNAMIC_VERTEX_SHADER_COMBO(DOWATERFOG, fogIndex);
+		SET_DYNAMIC_VERTEX_SHADER_COMBO(SKINNING, pShaderAPI->GetCurrentNumBones() > 0);
+		SET_DYNAMIC_VERTEX_SHADER_COMBO(COMPRESSED_VERTS, (int)vertexCompression);
+		SET_DYNAMIC_VERTEX_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_vs30);
+			
+		
+		DynamicCmdsOut.SetPixelShaderFogParams(3);
+
+		bool bHasFlashlight = UsingFlashlight(params);
+
+		if (bHasFlashlight)
 		{
-			CCommandBufferBuilder< CFixedCommandStorageBuffer< 1000 > > DynamicCmdsOut;
-			
-		
-			BindTexture(SHADER_SAMPLER0, BASETEXTURE);
-			BindTexture(SHADER_SAMPLER1, DEFORMEDTEXTURE);
-			BindTexture(SHADER_SAMPLER2, PROJECTEDTEXTURE);
+			// Tweaks associated with a given flashlight
+			VMatrix worldToTexture;
+			const FlashlightState_t& flashlightState = pShaderAPI->GetFlashlightState(worldToTexture);
+			float tweaks[4];
+			tweaks[0] = flashlightState.m_flShadowFilterSize / flashlightState.m_flShadowMapResolution;
+			tweaks[1] = ShadowAttenFromState(flashlightState);
+			HashShadow2DJitter(flashlightState.m_flShadowJitterSeed, &tweaks[2], &tweaks[3]);
+			pShaderAPI->SetPixelShaderConstant(4, tweaks, 1);
 
-
-			MaterialFogMode_t fogType = pShaderAPI->GetSceneFogMode();
-			int fogIndex = (fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z) ? 1 : 0;
-
-
-			DECLARE_DYNAMIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
-			SET_DYNAMIC_VERTEX_SHADER_COMBO(DOWATERFOG, fogIndex);
-			SET_DYNAMIC_VERTEX_SHADER_COMBO(SKINNING, pShaderAPI->GetCurrentNumBones() > 0);
-			SET_DYNAMIC_VERTEX_SHADER_COMBO(COMPRESSED_VERTS, (int)vertexCompression);
-			SET_DYNAMIC_VERTEX_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_vs30);
-
-			//DECLARE_DYNAMIC_PIXEL_SHADER(SimpWoundVertexLit_ps30);
-			//SET_DYNAMIC_PIXEL_SHADER_CMD(DynamicCmdsOut, SimpWoundVertexLit_ps30);
-			
-		
-	
-			DynamicCmdsOut.SetPixelShaderFogParams(3);
-
-
-			bool bWriteDepthToAlpha = pShaderAPI->ShouldWriteDepthToDestAlpha();
-			bool bWriteWaterFogToAlpha = (fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z);
-	
-			AssertMsg(!(bWriteDepthToAlpha && bWriteWaterFogToAlpha), "Can't write two values to alpha at the same time.");
-	
-
-			float eyePos[4];
-			pShaderAPI->GetWorldSpaceCameraPosition(eyePos);
-			DynamicCmdsOut.SetPixelShaderConstant(1, eyePos);
-
-			float fPixelFogType = pShaderAPI->GetPixelFogCombo() == 1 ? 1 : 0;
-			float fWriteDepthToAlpha = bWriteDepthToAlpha && IsPC() ? 1 : 0;
-			float fWriteWaterFogToDestAlpha = (pShaderAPI->GetPixelFogCombo() == 1 && bWriteWaterFogToAlpha) ? 1 : 0;
-			float fVertexAlpha = 0;
-
-			// Controls for lerp-style paths through shader code (bump and non-bump have use different register)
-			float vShaderControls[4] = { fPixelFogType, fWriteDepthToAlpha, fWriteWaterFogToDestAlpha, fVertexAlpha };
-			DynamicCmdsOut.SetPixelShaderConstant(2, vShaderControls, 1);
-
-
-
-			VMatrix woundTransform = params[WOUNDTRANSFORM]->GetMatrixValue();
-			VMatrix woundTransformInvert;
-			const float* woundSize_blendMode = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
-
-			MatrixInverseGeneral(woundTransform, woundTransformInvert);
-
-			DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
-			DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);
-			DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, woundSize_blendMode, 1);
-			DynamicCmdsOut.SetPixelShaderConstant(0, woundSize_blendMode, 1);
-
-
-
-			DynamicCmdsOut.End();
-			pShaderAPI->ExecuteCommandBuffer(DynamicCmdsOut.Base());
-			
+			//Dimensions of screen, used for screen-space noise map sampling
+			float vScreenScale[4] = { 1280.0f / 32.0f, 720.0f / 32.0f, 0, 0 };
+			int nWidth, nHeight;
+			pShaderAPI->GetBackBufferDimensions(nWidth, nHeight);
+			vScreenScale[0] = (float)nWidth / 32.0f;
+			vScreenScale[1] = (float)nHeight / 32.0f;
+			pShaderAPI->SetPixelShaderConstant(31, vScreenScale, 1);
 		}
+
+		bool bFlashlightNoLambert = false;
+		VMatrix worldToTexture;
+		const FlashlightState_t& flashlightState = pShaderAPI->GetFlashlightState(worldToTexture);
+		SetFlashLightColorFromState(flashlightState, pShaderAPI, 11, bFlashlightNoLambert);
+
+		//pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_9, worldToTexture.Base(), 4);
+		BindTexture(SHADER_SAMPLER3, flashlightState.m_pSpotlightTexture, flashlightState.m_nSpotlightTextureFrame);
+
+		float atten_pos[8];
+		atten_pos[0] = flashlightState.m_fConstantAtten;			// Set the flashlight attenuation factors
+		atten_pos[1] = flashlightState.m_fLinearAtten;
+		atten_pos[2] = flashlightState.m_fQuadraticAtten;
+		atten_pos[3] = flashlightState.m_FarZ;
+		atten_pos[4] = flashlightState.m_vecLightOrigin[0];			// Set the flashlight origin
+		atten_pos[5] = flashlightState.m_vecLightOrigin[1];
+		atten_pos[6] = flashlightState.m_vecLightOrigin[2];
+		atten_pos[7] = 1.0f;
+		DynamicCmdsOut.SetPixelShaderConstant(5, atten_pos, 2);
+		DynamicCmdsOut.SetPixelShaderConstant(7, worldToTexture.Base(), 4);
+
+
+
+
+		bool bWriteDepthToAlpha = pShaderAPI->ShouldWriteDepthToDestAlpha();
+		bool bWriteWaterFogToAlpha = (fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z);
+	
+		AssertMsg(!(bWriteDepthToAlpha && bWriteWaterFogToAlpha), "Can't write two values to alpha at the same time.");
+	
+
+		float eyePos[4];
+		pShaderAPI->GetWorldSpaceCameraPosition(eyePos);
+		DynamicCmdsOut.SetPixelShaderConstant(1, eyePos);
+
+		float fPixelFogType = pShaderAPI->GetPixelFogCombo() == 1 ? 1 : 0;
+		float fWriteDepthToAlpha = bWriteDepthToAlpha && IsPC() ? 1 : 0;
+		float fWriteWaterFogToDestAlpha = (pShaderAPI->GetPixelFogCombo() == 1 && bWriteWaterFogToAlpha) ? 1 : 0;
+		float fVertexAlpha = 0;
+
+		// Controls for lerp-style paths through shader code (bump and non-bump have use different register)
+		float vShaderControls[4] = { fPixelFogType, fWriteDepthToAlpha, fWriteWaterFogToDestAlpha, fVertexAlpha };
+		DynamicCmdsOut.SetPixelShaderConstant(2, vShaderControls, 1);
+
+
+
+		// ------SimpWound
+		VMatrix woundTransform = params[WOUNDTRANSFORM]->GetMatrixValue();
+		VMatrix woundTransformInvert;
+		const float* woundSize_blendMode = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
+
+		MatrixInverseGeneral(woundTransform, woundTransformInvert);
+
+		DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
+		DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);
+		DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, woundSize_blendMode, 1);
+		DynamicCmdsOut.SetPixelShaderConstant(0, woundSize_blendMode, 1);
+		// ------SimpWound
+
+
+		DynamicCmdsOut.End();
+		pShaderAPI->ExecuteCommandBuffer(DynamicCmdsOut.Base());
 	}
 	Draw();
 }

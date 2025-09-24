@@ -12,6 +12,7 @@ GMOD_MODULE_OPEN() {
 	Msg("[SimpWound]: Injecting shaders\n");
 	if (!inject_shaders())
 		LUA->ThrowError("[SimpWound Internal Error]: C++ Shadersystem failed to load!");
+	Msg("[SimpWound]: VERSION 1.0.0\n");
 	Msg("=====================================\n");
 	return 0;
 }

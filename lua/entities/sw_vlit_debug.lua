@@ -15,13 +15,15 @@ end
 
 if SERVER then
 	function ENT:Initialize()
-		local Ragdoll = ents.Create('prop_ragdoll')
-		Ragdoll:SetModel('models/breen.mdl')
-		Ragdoll:SetPos(self:GetPos())
-		Ragdoll:SetAngles(self:GetAngles())
-		Ragdoll:Spawn()
+		if not IsValid(self:GetRagdoll()) then
+			local Ragdoll = ents.Create('prop_ragdoll')
+			Ragdoll:SetModel('models/breen.mdl')
+			Ragdoll:SetPos(self:GetPos())
+			Ragdoll:SetAngles(self:GetAngles())
+			Ragdoll:Spawn()
 
-		self:SetRagdoll(Ragdoll)
+			self:SetRagdoll(Ragdoll)
+		end
 		self:DrawShadow(false)
 	end
 
@@ -30,6 +32,27 @@ if SERVER then
 			self:GetRagdoll():Remove()
 		end
 	end
+
+	concommand.Add('sw_vlit_debug', function(ply)
+		local ent = ply:GetEyeTrace().Entity
+		if IsValid(ent) then
+			local ragdoll = ents.Create('prop_ragdoll')
+			ragdoll:SetModel(ent:GetModel())
+			ragdoll:SetPos(ent:GetPos())
+			ragdoll:SetAngles(ent:GetAngles())
+			ragdoll:Spawn()
+
+			local ent2 = ents.Create('sw_vlit_debug')
+			ent2:SetRagdoll(ragdoll)
+			ent2:Spawn()
+
+	
+			undo.Create('sw_vlit_debug')
+				undo.AddEntity(ent2)
+				undo.SetPlayer(ply)
+			undo.Finish()
+		end
+	end)
 
 end
 
@@ -49,7 +72,7 @@ if CLIENT then
 				materialname, 
 				'SimpWoundVertexLit'
 			)
-
+			
 			material:SetTexture('$basetexture', mat)
 			material:SetTexture('$projectedtexture', 'models/flesh')
 			material:SetTexture('$deformedtexture', 'models/flesh')
@@ -57,19 +80,12 @@ if CLIENT then
 			material:SetVector('$woundsize_blendmode', Vector(1, 0.3, 0))
 
 			ragdoll:SetSubMaterial(idx, '!'..materialname)
+
+			print(idx, mat)
 		end
 	end
 
 	function ENT:Draw()
 		
 	end
-
-	hook.Add('SetupWorldFog', 'fogtest', function()
-		// render.FogMode(1)
-		// render.FogColor(0, 0, 0)
-		// render.FogMaxDensity(1)
-		// render.FogStart(0)
-		// render.FogEnd(500)
-		// return true
-	end)
 end

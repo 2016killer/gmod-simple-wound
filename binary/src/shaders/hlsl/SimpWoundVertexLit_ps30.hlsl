@@ -1,11 +1,21 @@
-#include "common_ps_fxc.h"
+// STATIC: "FLASHLIGHT"					"0..1"
+
+#include "common_flashlight_fxc.h"
 #include "common_vertexlitgeneric_dx9.h"
 
+
 sampler BaseTextureSampler		: register( s0 );
+// ------SimpWound
 sampler DeformedTextureSampler	: register( s1 );
 sampler ProjTextureSampler		: register( s2 );
+// ------SimpWound
+sampler FlashlightSampler		: register( s3 );
+sampler ShadowDepthSampler		: register( s4 );
+sampler RandRotSampler			: register( s5 );
 
+// ------SimpWound
 const float3 woundSize_blendMode	: register(c0);
+// ------SimpWound
 
 const float3 g_EyePos				: register( c1 );
 
@@ -16,6 +26,11 @@ const float4 g_ShaderControls		: register( c2 );
 
 const float4 g_FogParams			: register( c3 );
 
+const float4 g_EnvmapContrast_ShadowTweaks		: register( c4 );
+const float4 g_FlashlightAttenuationFactors	    : register( c5 );
+const HALF3 g_FlashlightPos						: register( c6 );
+const float4x4 g_FlashlightWorldToTexture		: register( c7 );
+
 struct PS_INPUT
 {
 	float4 baseTexCoord				: TEXCOORD0;
@@ -23,6 +38,8 @@ struct PS_INPUT
 
 	float4 color					: TEXCOORD2;	
 	float4 worldPos_projPosZ		: TEXCOORD3;
+	float4 projPos					: TEXCOORD4;
+	float3 worldSpaceNormal			: TEXCOORD5;
 
 	float4 fogFactorW				: COLOR1;
 };
@@ -69,6 +86,7 @@ float4 FinalOutputConst( const float4 vShaderColor, float pixelFogFactor, float 
 	return result;
 }
 
+// ------SimpWound
 void SimpWound_TextureCombine(
 	const float4 deformedColor, 
 	const float4 projColor, 
@@ -91,26 +109,16 @@ void SimpWound_TextureCombine(
 		step(dist, blendMode)
 	);
 } 
-
+// ------SimpWound
 
 float4 main( PS_INPUT i ) : COLOR
 {
-	static bool bAmbientLight = true;
-	static bool bDoDiffuseWarp = false;
-	static bool bHalfLambert = true;
+	bool bFlashlight = FLASHLIGHT ? true : false;
 
-
-	float4 baseColor = float4( 1.0f, 1.0f, 1.0f, 1.0f );
-	baseColor = tex2D( BaseTextureSampler, i.baseTexCoord.xy );
-
-// #if DETAILTEXTURE
-// 	float4 detailColor = tex2D( DetailSampler, i.detailTexCoord_atten3.xy );
-// 	baseColor = TextureCombine( baseColor, detailColor, DETAIL_BLEND_MODE, g_DetailBlendFactor );
-// #endif
-
+	// ------SimpWound
+	float4 baseColor = tex2D( BaseTextureSampler, i.baseTexCoord.xy );
 	float4 deformedColor = tex2D( DeformedTextureSampler, i.baseTexCoord.xy );
 	float4 projColor = tex2D( ProjTextureSampler, i.vWoundData.xy );
-
 
 	SimpWound_TextureCombine( 
 		deformedColor, 
@@ -119,12 +127,42 @@ float4 main( PS_INPUT i ) : COLOR
 		i.vWoundData.z,
 		baseColor
 	);
+	// ------SimpWound
 	
 
+	float3 diffuseLighting = i.color.rgb;
+	
+	float3 albedo = baseColor;
+	
 	float alpha = baseColor.a;
-	float3 result = baseColor.rgb * i.color.rgb;
 
-	float fogFactor = CalcPixelFogFactorConst( g_fPixelFogType, g_FogParams, g_EyePos.z, i.worldPos_projPosZ.z, i.worldPos_projPosZ.w );
-	alpha = lerp( alpha, fogFactor, g_fPixelFogType * g_fWriteWaterFogToDestAlpha ); // Use the fog factor if it's height fog
-	return FinalOutputConst( float4( result.rgb, alpha ), fogFactor, g_fPixelFogType, TONEMAP_SCALE_LINEAR, g_fWriteDepthToAlpha, i.worldPos_projPosZ.w );
+
+	if( bFlashlight )
+	{
+		int nShadowSampleLevel = 0;
+		bool bDoShadows = false;
+
+
+		float4 flashlightSpacePosition = mul( float4( i.worldPos_projPosZ.xyz, 1.0f ), g_FlashlightWorldToTexture );
+
+	bool bUseWorldNormal = true;
+
+		float3 flashlightColor = DoFlashlight( g_FlashlightPos, i.worldPos_projPosZ.xyz, flashlightSpacePosition,
+			i.worldSpaceNormal, g_FlashlightAttenuationFactors.xyz, 
+			g_FlashlightAttenuationFactors.w, FlashlightSampler, ShadowDepthSampler,
+			RandRotSampler, nShadowSampleLevel, bDoShadows, false, i.projPos.xy / i.projPos.w, false, g_EnvmapContrast_ShadowTweaks, bUseWorldNormal );
+
+		diffuseLighting += flashlightColor;
+	}
+
+
+	alpha = alpha * i.color.a;
+
+	// float3 diffuseComponent = albedo * diffuseLighting;
+	// float3 result = diffuseComponent;
+	float3 result = albedo * diffuseLighting;
+
+	float fogFactor = CalcPixelFogFactorConst( g_fPixelFogType, g_FogParams, g_EyePos.z, i.worldPos_projPosZ.z, i.projPos.z );
+	alpha = lerp( alpha, fogFactor, g_fWriteWaterFogToDestAlpha ); // Use the fog factor if it's height fog
+	return FinalOutputConst( float4( result.rgb, alpha ), fogFactor, g_fPixelFogType, TONEMAP_SCALE_LINEAR, g_fWriteDepthToAlpha, i.projPos.z );
 }
