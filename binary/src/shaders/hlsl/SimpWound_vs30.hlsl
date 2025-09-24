@@ -3,6 +3,8 @@
 
 #include "common_vs_fxc.h"
 
+// 不太懂hlsl，瞎几把乱写的，仅供参考
+
 static const bool g_bSkinning		= SKINNING ? true : false;
 
 const float4x4 mWoundTransform			:  register( SHADER_SPECIFIC_CONST_0 );

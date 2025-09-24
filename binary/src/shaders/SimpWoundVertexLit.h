@@ -5,6 +5,8 @@
 
 #include <istudiorender.h>
 #include "commandbuilder.h"
+// 不太懂c++，瞎几把乱写的，仅供参考
+// 自定义逻辑部分用 SimpWound圈起，其他都是Ctrl C+V Value的源码。
 
 BEGIN_VS_SHADER(SimpWoundVertexLit, "Help for SimpWoundVertexLit")
 
@@ -145,26 +147,48 @@ SHADER_DRAW
 		}
 
 		bool bFlashlightNoLambert = false;
-		VMatrix worldToTexture;
-		const FlashlightState_t& flashlightState = pShaderAPI->GetFlashlightState(worldToTexture);
-		SetFlashLightColorFromState(flashlightState, pShaderAPI, 11, bFlashlightNoLambert);
 
-		//pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_9, worldToTexture.Base(), 4);
-		BindTexture(SHADER_SAMPLER3, flashlightState.m_pSpotlightTexture, flashlightState.m_nSpotlightTextureFrame);
+		if (bHasFlashlight)
+		{
+			VMatrix worldToTexture;
+			ITexture* pFlashlightDepthTexture;
+			FlashlightState_t state = pShaderAPI->GetFlashlightStateEx(worldToTexture, &pFlashlightDepthTexture);
 
-		float atten_pos[8];
-		atten_pos[0] = flashlightState.m_fConstantAtten;			// Set the flashlight attenuation factors
-		atten_pos[1] = flashlightState.m_fLinearAtten;
-		atten_pos[2] = flashlightState.m_fQuadraticAtten;
-		atten_pos[3] = flashlightState.m_FarZ;
-		atten_pos[4] = flashlightState.m_vecLightOrigin[0];			// Set the flashlight origin
-		atten_pos[5] = flashlightState.m_vecLightOrigin[1];
-		atten_pos[6] = flashlightState.m_vecLightOrigin[2];
-		atten_pos[7] = 1.0f;
-		DynamicCmdsOut.SetPixelShaderConstant(5, atten_pos, 2);
-		DynamicCmdsOut.SetPixelShaderConstant(7, worldToTexture.Base(), 4);
+			if (pFlashlightDepthTexture && g_pConfig->ShadowDepthTexture() && state.m_bEnableShadows)
+			{
+				BindTexture(SHADER_SAMPLER4, pFlashlightDepthTexture, 0);
+				DynamicCmdsOut.BindStandardTexture(SHADER_SAMPLER5, TEXTURE_SHADOW_NOISE_2D);
+			}
 
+			SetFlashLightColorFromState(state, pShaderAPI, 11, bFlashlightNoLambert);
 
+			//Assert(info.m_nFlashlightTexture >= 0 && info.m_nFlashlightTextureFrame >= 0);
+			BindTexture(SHADER_SAMPLER3, state.m_pSpotlightTexture, state.m_nSpotlightTextureFrame);
+		}
+		
+		if (bHasFlashlight)
+		{
+			VMatrix worldToTexture;
+			const FlashlightState_t& flashlightState = pShaderAPI->GetFlashlightState(worldToTexture);
+			SetFlashLightColorFromState(flashlightState, pShaderAPI, 11, bFlashlightNoLambert);
+
+			//pShaderAPI->SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_9, worldToTexture.Base(), 4);
+
+			BindTexture(SHADER_SAMPLER3, flashlightState.m_pSpotlightTexture, flashlightState.m_nSpotlightTextureFrame);
+
+			float atten_pos[8];
+			atten_pos[0] = flashlightState.m_fConstantAtten;			// Set the flashlight attenuation factors
+			atten_pos[1] = flashlightState.m_fLinearAtten;
+			atten_pos[2] = flashlightState.m_fQuadraticAtten;
+			atten_pos[3] = flashlightState.m_FarZ;
+			atten_pos[4] = flashlightState.m_vecLightOrigin[0];			// Set the flashlight origin
+			atten_pos[5] = flashlightState.m_vecLightOrigin[1];
+			atten_pos[6] = flashlightState.m_vecLightOrigin[2];
+			atten_pos[7] = 1.0f;
+			DynamicCmdsOut.SetPixelShaderConstant(5, atten_pos, 2);
+
+			DynamicCmdsOut.SetPixelShaderConstant(7, worldToTexture.Base(), 4);
+		}
 
 
 		bool bWriteDepthToAlpha = pShaderAPI->ShouldWriteDepthToDestAlpha();

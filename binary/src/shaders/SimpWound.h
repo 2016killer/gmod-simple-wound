@@ -4,6 +4,7 @@
 #include "shaders/inc/SimpWound_ps30.inc"
 
 #include <istudiorender.h>
+// 不太懂c++，瞎几把乱写的，仅供参考
 
 BEGIN_VS_SHADER(SimpWound, "Help for SimpWound")
 

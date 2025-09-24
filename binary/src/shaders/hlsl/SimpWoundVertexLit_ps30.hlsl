@@ -3,6 +3,8 @@
 #include "common_flashlight_fxc.h"
 #include "common_vertexlitgeneric_dx9.h"
 
+// 不太懂hlsl，瞎几把乱写的，仅供参考
+// 自定义逻辑部分用 SimpWound圈起，其他都是Ctrl C+V Value的源码。
 
 sampler BaseTextureSampler		: register( s0 );
 // ------SimpWound

@@ -1,5 +1,7 @@
 #include "common_ps_fxc.h"
 
+// 不太懂hlsl，瞎几把乱写的，仅供参考
+
 sampler BaseTextureSampler	: register( s0 );
 sampler DeformedTextureSampler	: register( s1 );
 sampler ProjTextureSampler	: register( s2 );

@@ -32,28 +32,6 @@ if SERVER then
 			self:GetRagdoll():Remove()
 		end
 	end
-
-	concommand.Add('sw_vlit_debug', function(ply)
-		local ent = ply:GetEyeTrace().Entity
-		if IsValid(ent) then
-			local ragdoll = ents.Create('prop_ragdoll')
-			ragdoll:SetModel(ent:GetModel())
-			ragdoll:SetPos(ent:GetPos())
-			ragdoll:SetAngles(ent:GetAngles())
-			ragdoll:Spawn()
-
-			local ent2 = ents.Create('sw_vlit_debug')
-			ent2:SetRagdoll(ragdoll)
-			ent2:Spawn()
-
-	
-			undo.Create('sw_vlit_debug')
-				undo.AddEntity(ent2)
-				undo.SetPlayer(ply)
-			undo.Finish()
-		end
-	end)
-
 end
 
 

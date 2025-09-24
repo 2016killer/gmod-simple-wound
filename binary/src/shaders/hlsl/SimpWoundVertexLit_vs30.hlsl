@@ -5,6 +5,9 @@
 
 #include "common_vs_fxc.h"
 
+// 不太懂hlsl，瞎几把乱写的，仅供参考
+// 自定义逻辑部分用 SimpWound圈起，其他都是Ctrl C+V Value的源码。
+
 static const bool g_bSkinning		= SKINNING ? true : false;
 static const int g_FogType			= DOWATERFOG;
 static const bool g_bFlashlight		= FLASHLIGHT ? true : false;
