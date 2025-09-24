@@ -19,7 +19,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_vs30_Static_Index(  )
+	SimpWoundVertexLit_vs30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
 	{
 		m_nFLASHLIGHT = 0;
 #ifdef _DEBUG
@@ -75,7 +75,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_vs30_Dynamic_Index(  )
+	SimpWoundVertexLit_vs30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
 	{
 		m_nSKINNING = 0;
 		m_nCOMPRESSED_VERTS = 0;

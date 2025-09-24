@@ -4,13 +4,16 @@ if CLIENT then
 	TOOL.Name = '#tool.sw_sphericaldeform_tool.name'
 
 	TOOL.ClientConVar['sx'] = '10.0'
-	TOOL.ClientConVar['sy'] = '10.0'
-	TOOL.ClientConVar['sz'] = '10.0'
+	TOOL.ClientConVar['sy'] = '5'
+	TOOL.ClientConVar['sz'] = '5'
 
 	TOOL.ClientConVar['ws'] = '1.0'
 	TOOL.ClientConVar['bs'] = '0.5'
 
 	TOOL.ClientConVar['offset'] = 'auto'
+
+	TOOL.ClientConVar['projtex'] = 'models/flesh'
+	TOOL.ClientConVar['deformtex'] = 'models/flesh'
 
 	function TOOL.BuildCPanel(panel)
 		panel:Clear()
@@ -24,6 +27,8 @@ if CLIENT then
 			sw_sphericaldeform_tool_ws = '1.0',
 			sw_sphericaldeform_tool_bs = '0.5',
 			sw_sphericaldeform_tool_offset = 'auto',
+			sw_sphericaldeform_tool_projtex = 'models/flesh',
+			sw_sphericaldeform_tool_deformtex = 'models/flesh',
 		}
 		ctrl:AddOption('#preset.default', default)
 		for k, v in pairs(default) do ctrl:AddConVar(k) end
@@ -75,6 +80,49 @@ if CLIENT then
 				offsetComboBox:AddChoice(k, k)
 			end
 		end
+
+
+		local items = {
+			'models/flesh',
+			'models/props_c17/paper01',
+			'models/props_foliage/tree_deciduous_01a_trunk',
+			'models/props_wasteland/wood_fence01a'
+		}
+
+		panel:Help('#tool.sw_sphericaldeform_tool.deformtex')
+		local MatSelect2 = vgui.Create('MatSelect', panel)
+		MatSelect2:Dock(TOP)
+		Derma_Hook(MatSelect2.List, 'Paint', 'Paint', 'Panel')
+
+		panel:AddItem(MatSelect2)
+		MatSelect2:SetConVar('sw_sphericaldeform_tool_deformtex')
+
+		MatSelect2:SetAutoHeight(true)
+		MatSelect2:SetItemWidth(64)
+		MatSelect2:SetItemHeight(64)
+
+		for k, material in pairs(items) do
+			MatSelect2:AddMaterial(material, material)
+		end
+
+
+		panel:Help('#tool.sw_sphericaldeform_tool.projtex')
+		local MatSelect = vgui.Create('MatSelect', panel)
+		MatSelect:Dock(TOP)
+		Derma_Hook(MatSelect.List, 'Paint', 'Paint', 'Panel')
+
+		panel:AddItem(MatSelect)
+		MatSelect:SetConVar('sw_sphericaldeform_tool_projtex')
+
+		MatSelect:SetAutoHeight(true)
+		MatSelect:SetItemWidth(64)
+		MatSelect:SetItemHeight(64)
+
+		for k, material in pairs(items) do
+			MatSelect:AddMaterial(material, material)
+		end
+
+
 	end
 
 	TOOL.Information = {
@@ -112,8 +160,34 @@ function TOOL:LeftClick(tr)
 		return
 	end
 
+	tr.HitPos = tr.HitPos - tr.Normal * 5
 	if SERVER then
+		local woundWorldTransform = Matrix()
+		woundWorldTransform:SetTranslation(tr.HitPos)
+		woundWorldTransform:SetAngles(tr.HitNormal:Angle())
+		woundWorldTransform:SetScale(
+			Vector(
+				self:GetClientNumber('sx'), 
+				self:GetClientNumber('sy'), 
+				self:GetClientNumber('sz')
+			)
+		)
 
+		if IsValid(ent) then
+			print(self:GetClientInfo('projtex'), self:GetClientInfo('deformtex'), self:GetClientInfo('offset'))
+			SimpWound.ApplySimpWoundEasy(
+				ent, 
+				'SimpWoundVertexLit',
+				woundWorldTransform,
+				Vector(
+					self:GetClientNumber('ws'), 
+					self:GetClientNumber('bs'),
+					0
+				), 
+				self:GetClientInfo('deformtex'), self:GetClientInfo('projtex'),
+				ent:TranslatePhysBoneToBone(tr.PhysicsBone), self:GetClientInfo('offset')
+			)
+		end
 	end
 
 	return true
@@ -129,7 +203,7 @@ function TOOL:Reload(tr)
 		return
 	end
 
-	SimpWound.PrintMainParams(ent)
+	SimpWound.PrintSWParams(ent)
 
 	return true
 end
@@ -139,10 +213,43 @@ if CLIENT then
 	local wireframe = Material('models/wireframe')
 	local vol_light001 = Material('models/effects/vol_light001')
 
-	function TOOL:DrawHUD()
-		-- 标记作用范围
+	local ghostent = ClientsideModel('models/hunter/blocks/cube025x025x025.mdl')
+	ghostent:SetNoDraw(true)
+
+	function TOOL:Think()
 		local tr = LocalPlayer():GetEyeTrace()
 		local ent = tr.Entity
+
+		if not IsValid(ghostent) then
+			ghostent = ClientsideModel()
+			ghostent:SetNoDraw(true)
+		end
+
+		if IsValid(ent) then
+			if ghostent:GetModel() ~= ent:GetModel() then
+				ghostent:SetModel(ent:GetModel())
+				if ent:IsRagdoll() then
+					ghostent:SetPos(ent:GetPos())
+					ghostent:SetAngles(ent:GetAngles())
+					ghostent:SetParent(ent)
+					ghostent:AddEffects(EF_BONEMERGE)
+				end
+				ghostent:SetupBones()
+			end
+			
+			if not ent:IsRagdoll() then
+				ghostent:SetPos(ent:GetPos())
+				ghostent:SetAngles(ent:GetAngles())
+			end
+		end
+	end
+
+	function TOOL:DrawMask()
+		-- 标记作用范围
+		local tr = LocalPlayer():GetEyeTrace()
+
+		tr.HitPos = tr.HitPos - tr.Normal * 5
+
 		local woundEllip = Matrix()
 		woundEllip:SetTranslation(tr.HitPos)
 		woundEllip:SetAngles(tr.HitNormal:Angle())
@@ -175,11 +282,15 @@ if CLIENT then
 				render.SetStencilReferenceValue(0)
 				render.SetStencilCompareFunction(STENCIL_ALWAYS)
 				render.SetStencilPassOperation(STENCIL_REPLACE)
-				render.SetStencilFailOperation(STENCIL_KEEP)
-				render.SetStencilZFailOperation(STENCIL_KEEP)
+				render.SetStencilFailOperation(STENCIL_REPLACE)
+				render.SetStencilZFailOperation(STENCIL_REPLACE)
 
-				if IsValid(ent) then
-					ent:DrawModel()
+				if IsValid(ghostent) then
+					render.OverrideColorWriteEnable(true, false)
+					render.OverrideDepthEnable(true, true)
+						ghostent:DrawModel()
+					render.OverrideDepthEnable(false)
+					render.OverrideColorWriteEnable(false)
 				end
 
 
@@ -197,11 +308,11 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
-				cam.Start2D()
-					surface.SetDrawColor(0, 255, 255, 150)
-					surface.DrawRect(0, 0, ScrW(), ScrH())
-				cam.End2D()
-
+				if IsValid(ghostent) then
+					render.MaterialOverride(wireframe)
+						ghostent:DrawModel()
+					render.MaterialOverride()
+				end
 
 				render.SetStencilCompareFunction(STENCIL_ALWAYS)
 				render.SetStencilPassOperation(STENCIL_KEEP)
@@ -218,28 +329,30 @@ if CLIENT then
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
 				cam.Start2D()
-					surface.SetDrawColor(255, 0, 255, 150)
+					surface.SetDrawColor(255, 0, 255, 50)
 					surface.DrawRect(0, 0, ScrW(), ScrH())
 				cam.End2D()
 
 			render.SetStencilEnable(false)
 
-
+			
 			SimpWound.DrawCoordinate(woundEllip)
 			render.SetMaterial(wireframe)
 			SimpWound.DrawEllipsoid(woundEllip, 8)
-
-			if IsValid(ent) then
-				SimpWound.DrawCoordinate(
-					ent:GetWorldTransformMatrix() * SimpWound.GetOffset(
-						ent, 
-						self:GetClientInfo('offset')
-					), 
-					30
-				)
-			end	
 		cam.End3D()
 	end
+
+	function TOOL:DrawHUD()
+		-- 安全调用
+		local success, err = pcall(self.DrawMask, self)
+		if not success then
+			ErrorNoHalt(string.format('[SimpWound]: %s\n', err))
+			render.OverrideColorWriteEnable(false)
+			render.OverrideDepthEnable(false)
+			return
+		end
+	end
+
 
 	local errmsg = language.GetPhrase('#sw.missmodule')
 	function TOOL:DrawToolScreen(width, height)

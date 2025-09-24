@@ -59,7 +59,7 @@ struct VS_OUTPUT
 
 // ------SimpWound
 void SimpWound_Deform(const float4x4 mTransform, const float4x4 mTransformInvert, const float size, 
-	const float4 vPos, out float4 vPosOut, out float3 vWoundData)
+	inout float4 vPos, out float3 vWoundData, inout float3 vNormal)
 {
 	// 球面变形
 
@@ -67,27 +67,38 @@ void SimpWound_Deform(const float4x4 mTransform, const float4x4 mTransformInvert
 	float fDist = length(vLocalPos.xyz);
 	vWoundData = float3(vLocalPos.yz, fDist);
 
-	float4 vPosProj = mul( 
-		float4(vLocalPos.xyz / max(fDist, 1e-6), 1), 
+	vLocalPos.xyz = vLocalPos.xyz / max(fDist, 1e-6);
+
+	float4 vPosNew = mul( 
+		float4(vLocalPos.xyz, 1), 
 		mTransform 
 	);
-	vPosProj.w = 1;
+	vPosNew.w = 1;
+	
 
-	vPosOut = lerp(vPos, vPosProj, step(fDist, size));
+	float4 vNormalNew = mul( 
+		float4(vLocalPos.xyz, 0), 
+		mTransform 
+	);
+
+	vPos = lerp(vPos, vPosNew, step(fDist, size));
+	vNormal = lerp(vNormal, -normalize(vNormalNew.xyz) , step(fDist, size));
 }
 // ------SimpWound
 
 VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
-	// ------SimpWound
-	float4 vPosition;
-	SimpWound_Deform(mWoundTransform, mWoundTransformInvert, vWoundSize_blendMode.x, 
-		v.vPos, vPosition, o.vWoundData
-	);
-	// ------SimpWound
+
 	float3 vNormal;
 	DecompressVertex_Normal( v.vNormal, vNormal );
+
+	// ------SimpWound
+	float4 vPosition = v.vPos;
+	SimpWound_Deform(mWoundTransform, mWoundTransformInvert, vWoundSize_blendMode.x, 
+		vPosition, o.vWoundData, vNormal
+	);
+	// ------SimpWound
 
 
 	ApplyMorph( v.vPosFlex, v.vNormalFlex, vPosition.xyz, vNormal );

@@ -1,7 +1,11 @@
 --
 -- for lyt 2025 04 08, 心急强吃热豆腐
-if SERVER then
-    SimpWound = {}
+local function GetBoneMatrix(ent, boneid)
+	if boneid == -1 then
+		return ent:GetWorldTransformMatrix()
+	else
+		return ent:GetBoneMatrix(boneid)
+	end
 end
 
 
@@ -80,10 +84,6 @@ if CLIENT then
 		for j, _ in pairs(materials) do
 			render.MaterialOverrideByIndex(j - 1)
 		end
-
-		local transform = SimpWound.ClientModels[self:GetModel()]:GetWorldTransformMatrix()
-		SimpWound.DrawEllipsoid(transform * params.woundtransform, 8)
-		SimpWound.DrawCoordinate(transform, 8)
 	end
 
 	local AvailableShaders = SimpWound.SWShaders
@@ -135,6 +135,8 @@ if CLIENT then
 						['$projectedtexture'] = projectedtexture,
 					}
 				)
+
+				PrintTable(matvar:GetKeyValues())
 
 				matvar:SetTexture('$basetexture', temp:GetTexture('$basetexture'))
 				SimpWound.MaterialsCache[matname] = matvar
@@ -193,15 +195,8 @@ if CLIENT then
 		end
 
 		local params = {}
-		print(boneid)
-		print('---')
-		print(modelent:GetBoneMatrix(boneid))
-		print('---')
-		print(ellipsoid)
-		print('---')
-		print(SimpWound.GetOffset(modelent, offset))
-		
-		params.woundtransform = modelent:GetWorldTransformMatrix():GetInverse() * modelent:GetBoneMatrix(boneid) * woundLocalTransform * SimpWound.GetOffset(modelent, offset)
+
+		params.woundtransform = SimpWound.GetOffset(modelent, offset):GetInverse() * GetBoneMatrix(modelent, boneid) * woundLocalTransform
 		params.woundsize_blendmode = woundsize_blendmode or Vector(1, 0.5, 0)
 		params.shader = shader or 'SimpWoundVertexLit'
 		params.deformedtexture = deformedtexture or 'models/flesh'
@@ -352,10 +347,12 @@ if SERVER then
 		woundsize_blendmode, deformedtexture, projectedtexture,
 		boneid, offset
 	)
+		local woundLocalTransform = GetBoneMatrix(ent, boneid):GetInverse() * woundWorldTransform
+
 		net.Start('sw_apply_easy')
 			net.WriteEntity(ent)
 			net.WriteString(shader)
-			net.WriteMatrix(ent:GetBoneMatrix(boneid):GetInverse() * woundWorldTransform)
+			net.WriteMatrix(woundLocalTransform)
 			net.WriteVector(woundsize_blendmode)
 			net.WriteString(deformedtexture)
 			net.WriteString(projectedtexture)
@@ -384,27 +381,6 @@ if SERVER then
 			})
 		end
 	end)
-
-	concommand.Add('sw_shoottest', function(ply)
-		local tr = ply:GetEyeTrace()
-
-		local ent = tr.Entity
-		local woundWorldTransform = Matrix()
-		woundWorldTransform:SetTranslation(tr.HitPos)
-		woundWorldTransform:SetAngles(tr.HitNormal:Angle())
-		woundWorldTransform:SetScale(Vector(10, 10, 10))
-
-		if IsValid(ent) then
-			SimpWound.ApplySimpWoundEasy(
-				ent, 
-				'SimpWoundVertexLit',
-				woundWorldTransform,
-				Vector(1, 0.5, 0), 'models/flesh', 'models/flesh',
-				ent:TranslatePhysBoneToBone(tr.PhysicsBone), 'auto'
-			)
-		end
-	end)
-
 end
 
 

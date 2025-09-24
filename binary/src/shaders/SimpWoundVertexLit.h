@@ -16,7 +16,7 @@ BEGIN_SHADER_PARAMS
 	SHADER_PARAM(WOUNDSIZE_BLENDMODE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0]", "Wound size, x: deformed range, y: project range, z: use projected texture alpha blend")
 
 	SHADER_PARAM(DEFORMEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Deformed part texture")
-	SHADER_PARAM(PROJECTEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "sw/blood", "Projected texture")
+	SHADER_PARAM(PROJECTEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Projected texture")
 END_SHADER_PARAMS
 
 

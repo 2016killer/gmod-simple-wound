@@ -32,7 +32,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_ps30_Static_Index(  )
+	SimpWoundVertexLit_ps30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
 	{
 		m_nFLASHLIGHT = 0;
 #ifdef _DEBUG
@@ -53,7 +53,7 @@ public:
 class SimpWoundVertexLit_ps30_Dynamic_Index
 {
 public:
-	SimpWoundVertexLit_ps30_Dynamic_Index(  )
+	SimpWoundVertexLit_ps30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
 	{
 	}
 
