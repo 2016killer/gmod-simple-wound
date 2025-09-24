@@ -1,4 +1,25 @@
 -------------------------------UI-------------------------------
+local none = Matrix()
+local z90 = Matrix()
+z90:SetTranslation(Vector(0, 0, -38.56692))
+z90:SetAngles(Angle(0, 90, 0))
+
+local offset = {
+	none = none,
+	z90 = z90,
+	auto = auto,
+}
+print(z90)
+none = nil
+z90 = nil
+
+local function auto(ent) 
+	return ent:GetBoneCount() > 0 and offset.z90 or offset.none 
+end
+
+offset.auto = auto
+auto = nil
+
 if CLIENT then
 	TOOL.Category = language.GetPhrase('#tool.sw_sphericaldeform_tool.category')
 	TOOL.Name = '#tool.sw_sphericaldeform_tool.name'
@@ -9,6 +30,8 @@ if CLIENT then
 
 	TOOL.ClientConVar['ws'] = '1.0'
 	TOOL.ClientConVar['bs'] = '0.5'
+
+	TOOL.ClientConVar['offset'] = 'auto'
 
 	function TOOL.BuildCPanel(panel)
 		panel:Clear()
@@ -21,6 +44,7 @@ if CLIENT then
 			sw_sphericaldeform_tool_sz = '10.0',
 			sw_sphericaldeform_tool_ws = '1.0',
 			sw_sphericaldeform_tool_bs = '0.5',
+			sw_sphericaldeform_tool_offset = 'auto',
 		}
 		ctrl:AddOption('#preset.default', default)
 		for k, v in pairs(default) do ctrl:AddConVar(k) end
@@ -66,6 +90,11 @@ if CLIENT then
 			3
 		)
 
+		local offsetComboBox = panel:ComboBox('#tool.sw_sphericaldeform_tool.offset', 'sw_sphericaldeform_tool_offset')
+		offsetComboBox:AddChoice('auto')
+		offsetComboBox:AddChoice('none')
+		offsetComboBox:AddChoice('z90')
+
 	end
 
 	TOOL.Information = {
@@ -76,6 +105,17 @@ if CLIENT then
 
 end
 --------------------------------------------------------------
+function TOOL:GetOffset(ent)
+	-- 获取渲染坐标系与世界坐标系的偏移
+
+	local offset = offset[self:GetClientInfo('offset')]
+	if isfunction(offset) then
+		return offset(ent)
+	else
+		return offset
+	end
+end
+
 function TOOL:RightClick(tr)
 	local ent = tr.Entity
 	if not IsValid(ent) then
@@ -96,8 +136,13 @@ function TOOL:RightClick(tr)
 end
 
 function TOOL:LeftClick(tr)
-	if not IsValid(self.target) then
+	local ent = tr.Entity
+	if not IsValid(ent) then
 		return
+	end
+
+	if SERVER then
+
 	end
 
 	return true
@@ -126,6 +171,7 @@ if CLIENT then
 	function TOOL:DrawHUD()
 		-- 标记作用范围
 		local tr = LocalPlayer():GetEyeTrace()
+		local ent = tr.Entity
 		local woundEllip = Matrix()
 		woundEllip:SetTranslation(tr.HitPos)
 		woundEllip:SetAngles(tr.HitNormal:Angle())
@@ -161,8 +207,8 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
-				if IsValid(tr.Entity) then
-					tr.Entity:DrawModel()
+				if IsValid(ent) then
+					ent:DrawModel()
 				end
 
 
@@ -180,7 +226,10 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
-				render.ClearBuffersObeyStencil(0, 255, 255, 255, false)
+				cam.Start2D()
+					surface.SetDrawColor(0, 255, 255, 150)
+					surface.DrawRect(0, 0, ScrW(), ScrH())
+				cam.End2D()
 
 
 				render.SetStencilCompareFunction(STENCIL_ALWAYS)
@@ -197,14 +246,21 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
-				render.ClearBuffersObeyStencil(255, 0, 0, 255, false)
+				cam.Start2D()
+					surface.SetDrawColor(255, 0, 255, 150)
+					surface.DrawRect(0, 0, ScrW(), ScrH())
+				cam.End2D()
 
 			render.SetStencilEnable(false)
 
-			SimpWound.DrawCoordinate(woundEllip, 8)
 
+			SimpWound.DrawCoordinate(woundEllip)
 			render.SetMaterial(wireframe)
 			SimpWound.DrawEllipsoid(woundEllip, 8)
+
+			if IsValid(ent) then
+				SimpWound.DrawCoordinate(ent:GetWorldTransformMatrix() * self:GetOffset(ent), 30)
+			end
 		
 		cam.End3D()
 	end

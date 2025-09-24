@@ -36,11 +36,12 @@ if CLIENT then
         cam.PopModelMatrix()
     end
 
-    SimpWound.DrawCoordinate = function(transform)
+    SimpWound.DrawCoordinate = function(transform, size)
+		size = size or 1
         cam.PushModelMatrix(transform)
-            render.DrawLine(zerovec, unitx, Color(255, 0, 0, 255), false)
-            render.DrawLine(zerovec, unity, Color(0, 255, 0, 255), false)
-            render.DrawLine(zerovec, unitz, Color(0, 0, 255, 255), false)   
+            render.DrawLine(zerovec, unitx * size, Color(255, 0, 0, 255), false)
+            render.DrawLine(zerovec, unity * size, Color(0, 255, 0, 255), false)
+            render.DrawLine(zerovec, unitz * size, Color(0, 0, 255, 255), false)   
         cam.PopModelMatrix()
     end
 
