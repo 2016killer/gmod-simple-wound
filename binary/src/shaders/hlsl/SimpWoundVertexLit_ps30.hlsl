@@ -113,10 +113,10 @@ void SimpWound_TextureCombine(
 } 
 // ------SimpWound
 
+static bool bFlashlight = FLASHLIGHT ? true : false;
+
 float4 main( PS_INPUT i ) : COLOR
 {
-	bool bFlashlight = FLASHLIGHT ? true : false;
-
 	// ------SimpWound
 	float4 baseColor = tex2D( BaseTextureSampler, i.baseTexCoord.xy );
 	float4 deformedColor = tex2D( DeformedTextureSampler, i.baseTexCoord.xy );

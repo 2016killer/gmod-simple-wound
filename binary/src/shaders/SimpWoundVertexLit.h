@@ -12,6 +12,7 @@ BEGIN_VS_SHADER(SimpWoundVertexLit, "Help for SimpWoundVertexLit")
 
 BEGIN_SHADER_PARAMS
 	SHADER_PARAM(WOUNDTRANSFORM, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform based on pre-skinned space")
+	SHADER_PARAM(WOUNDTRANSFORMINVERT, SHADER_PARAM_TYPE_MATRIX, "[1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]", "Wound transform invert based on pre-skinned space")
 	SHADER_PARAM(WOUNDSIZE_BLENDMODE, SHADER_PARAM_TYPE_VEC3, "[1, 0.5, 0]", "Wound size, x: deformed range, y: project range, z: use projected texture alpha blend")
 
 	SHADER_PARAM(DEFORMEDTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "models/flesh", "Deformed part texture")
@@ -29,6 +30,13 @@ SHADER_INIT_PARAMS()
 		VMatrix mat;
 		MatrixSetIdentity(mat);
 		params[WOUNDTRANSFORM]->SetMatrixValue(mat);
+	}
+
+	if (!params[WOUNDTRANSFORMINVERT]->IsDefined())
+	{
+		VMatrix mat;
+		MatrixSetIdentity(mat);
+		params[WOUNDTRANSFORMINVERT]->SetMatrixValue(mat);
 	}
 
 	if (!params[WOUNDSIZE_BLENDMODE]->IsDefined())
@@ -80,8 +88,8 @@ SHADER_DRAW
 
 
 		int fmt = VERTEX_POSITION | VERTEX_FORMAT_COMPRESSED;
-		int pTexCoordDim[1] = { 2 };
-		pShaderShadow->VertexShaderVertexFormat(fmt, 1, pTexCoordDim, 0);
+		
+		pShaderShadow->VertexShaderVertexFormat(fmt, 1, NULL, 0);
 
 
 		DECLARE_STATIC_VERTEX_SHADER(SimpWoundVertexLit_vs30);
@@ -213,11 +221,15 @@ SHADER_DRAW
 
 
 		// ------SimpWound
+		
 		VMatrix woundTransform = params[WOUNDTRANSFORM]->GetMatrixValue();
-		VMatrix woundTransformInvert;
+		//VMatrix woundTransformInvert;
+		//MatrixInverseGeneral(woundTransform, woundTransformInvert);
+		VMatrix woundTransformInvert = params[WOUNDTRANSFORMINVERT]->GetMatrixValue(); // 每帧计算开销性能太差，改成外部传入
+
 		const float* woundSize_blendMode = params[WOUNDSIZE_BLENDMODE]->GetVecValue();
 
-		MatrixInverseGeneral(woundTransform, woundTransformInvert);
+		
 
 		DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, woundTransform.m[0], 4);
 		DynamicCmdsOut.SetVertexShaderConstant(VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, woundTransformInvert.m[0], 4);

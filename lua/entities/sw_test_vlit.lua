@@ -43,9 +43,14 @@ if CLIENT then
 	function ENT:Initialize()
 		local ragdoll = self:GetRagdoll()
 		for i, mat in pairs(ragdoll:GetMaterials()) do
+			if string.find(mat, 'eye') ~= nil or string.find(mat, 'teeth') ~= nil or string.find(mat, 'mouth') ~= nil then
+				print('skip', mat)
+				continue
+			end
+
 			local idx = i - 1
 
-			local materialname = string.format('simplewoundvlit_%d_%d', self:EntIndex(), idx)
+			local materialname = string.format('simplewoundvlit_debug_%d', idx)
 			local material = CreateMaterial(
 				materialname, 
 				'SimpWoundVertexLit'
@@ -55,11 +60,10 @@ if CLIENT then
 			material:SetTexture('$projectedtexture', 'models/flesh')
 			material:SetTexture('$deformedtexture', 'models/flesh')
 			material:SetMatrix('$woundtransform', ellipsoid)
+			material:SetMatrix('$woundtransforminvert', ellipsoid:GetInverse())
 			material:SetVector('$woundsize_blendmode', Vector(1, 0.3, 0))
 
 			ragdoll:SetSubMaterial(idx, '!'..materialname)
-
-			print(idx, mat)
 		end
 	end
 

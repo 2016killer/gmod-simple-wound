@@ -1,25 +1,4 @@
 -------------------------------UI-------------------------------
-local none = Matrix()
-local z90 = Matrix()
-z90:SetTranslation(Vector(0, 0, -38.56692))
-z90:SetAngles(Angle(0, 90, 0))
-
-local offset = {
-	none = none,
-	z90 = z90,
-	auto = auto,
-}
-print(z90)
-none = nil
-z90 = nil
-
-local function auto(ent) 
-	return ent:GetBoneCount() > 0 and offset.z90 or offset.none 
-end
-
-offset.auto = auto
-auto = nil
-
 if CLIENT then
 	TOOL.Category = language.GetPhrase('#tool.sw_sphericaldeform_tool.category')
 	TOOL.Name = '#tool.sw_sphericaldeform_tool.name'
@@ -91,10 +70,11 @@ if CLIENT then
 		)
 
 		local offsetComboBox = panel:ComboBox('#tool.sw_sphericaldeform_tool.offset', 'sw_sphericaldeform_tool_offset')
-		offsetComboBox:AddChoice('auto')
-		offsetComboBox:AddChoice('none')
-		offsetComboBox:AddChoice('z90')
-
+		if SimpWound then
+			for k, v in pairs(SimpWound.Offset) do
+				offsetComboBox:AddChoice(k, k)
+			end
+		end
 	end
 
 	TOOL.Information = {
@@ -105,16 +85,7 @@ if CLIENT then
 
 end
 --------------------------------------------------------------
-function TOOL:GetOffset(ent)
-	-- 获取渲染坐标系与世界坐标系的偏移
 
-	local offset = offset[self:GetClientInfo('offset')]
-	if isfunction(offset) then
-		return offset(ent)
-	else
-		return offset
-	end
-end
 
 function TOOL:RightClick(tr)
 	local ent = tr.Entity
@@ -259,9 +230,14 @@ if CLIENT then
 			SimpWound.DrawEllipsoid(woundEllip, 8)
 
 			if IsValid(ent) then
-				SimpWound.DrawCoordinate(ent:GetWorldTransformMatrix() * self:GetOffset(ent), 30)
-			end
-		
+				SimpWound.DrawCoordinate(
+					ent:GetWorldTransformMatrix() * SimpWound.GetOffset(
+						ent, 
+						self:GetClientInfo('offset')
+					), 
+					30
+				)
+			end	
 		cam.End3D()
 	end
 

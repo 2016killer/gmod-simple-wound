@@ -72,6 +72,7 @@ if CLIENT then
 
 		for j, matvar in pairs(materials) do
 			matvar:SetMatrix('$woundtransform', params.woundtransform)
+			matvar:SetMatrix('$woundtransforminvert', params.woundtransforminvert)
 			matvar:SetVector('$woundsize_blendmode', params.woundsize_blendmode)
 			render.MaterialOverrideByIndex(j - 1, matvar)
 		end
@@ -79,17 +80,28 @@ if CLIENT then
 		for j, _ in pairs(materials) do
 			render.MaterialOverrideByIndex(j - 1)
 		end
+
+		local transform = SimpWound.ClientModels[self:GetModel()]:GetWorldTransformMatrix()
+		SimpWound.DrawEllipsoid(transform * params.woundtransform, 8)
+		SimpWound.DrawCoordinate(transform, 8)
 	end
 
 	local AvailableShaders = SimpWound.SWShaders
 	SimpWound.ApplySimpWound = function(ent, params)
 		-- 应用伤口着色器
+		-- params.woundtransform 必要
+		-- params.woundsize_blendmode 必要
+		-- params.deformedtexture 必要
+		-- params.projectedtexture 必要
+
 		local shader = params.shader
 		
 		if not AvailableShaders[shader] then
 			ErrorNoHalt(string.format('[SimpWound]: 未知着色器 "%s"\n', shader))
 			return
 		end
+
+		params.woundtransforminvert = params.woundtransform:GetInverse()
 
         ent.sw_params = params
 		ent.sw_materials = {}
@@ -161,11 +173,69 @@ if CLIENT then
 			})
 		end
 	end)
+
+	SimpWound.ClientModels = {}
+
+	local ClientModels = SimpWound.ClientModels
+	SimpWound.ApplySimpWoundEasy = function(ent, 
+		shader,
+		woundLocalTransform,
+		woundsize_blendmode, deformedtexture, projectedtexture,
+		boneid, offset
+	)
+		-- 这方法有点傻逼, 但是很有效
+		local model = ent:GetModel()
+		local modelent = ClientModels[model]
+		if not modelent then
+			modelent = ClientsideModel(model)
+			modelent:SetupBones()
+			ClientModels[model] = modelent
+		end
+
+		local params = {}
+		print(boneid)
+		print('---')
+		print(modelent:GetBoneMatrix(boneid))
+		print('---')
+		print(ellipsoid)
+		print('---')
+		print(SimpWound.GetOffset(modelent, offset))
+		
+		params.woundtransform = modelent:GetWorldTransformMatrix():GetInverse() * modelent:GetBoneMatrix(boneid) * woundLocalTransform * SimpWound.GetOffset(modelent, offset)
+		params.woundsize_blendmode = woundsize_blendmode or Vector(1, 0.5, 0)
+		params.shader = shader or 'SimpWoundVertexLit'
+		params.deformedtexture = deformedtexture or 'models/flesh'
+		params.projectedtexture = projectedtexture or 'models/flesh'
+	
+		SimpWound.ApplySimpWound(ent, params)
+	end
+
+
+	net.Receive('sw_apply_easy', function()
+		local ent = net.ReadEntity()
+		local shader = net.ReadString()
+		local woundLocalTransform = net.ReadMatrix()
+		local woundsize_blendmode = net.ReadVector()
+		local deformedtexture = net.ReadString()
+		local projectedtexture = net.ReadString()
+		local boneid = net.ReadInt(32)
+		local offset = net.ReadString()
+
+        SimpWound.ApplySimpWoundEasy(ent, 
+			shader, 
+			woundLocalTransform, 
+			woundsize_blendmode, deformedtexture, projectedtexture, 
+			boneid, offset
+		)
+    end)
+
+	
 end
 
 
 if SERVER then
     util.AddNetworkString('sw_query_params')
+	util.AddNetworkString('sw_apply_easy')
 	util.AddNetworkString('sw_apply')
 
     SimpWound = {}
@@ -268,7 +338,34 @@ if SERVER then
 		net.Broadcast()
     end
 
-	concommand.Add('sw_breentest_sv', function(ply, cmd, args)
+
+	SimpWound.ApplySimpWound = function(ent, params)
+		net.Start('sw_apply')
+			net.WriteTable(params)
+			net.WriteEntity(ent)
+		net.Broadcast()
+    end
+
+	SimpWound.ApplySimpWoundEasy = function(ent, 
+		shader,
+		woundWorldTransform,
+		woundsize_blendmode, deformedtexture, projectedtexture,
+		boneid, offset
+	)
+		net.Start('sw_apply_easy')
+			net.WriteEntity(ent)
+			net.WriteString(shader)
+			net.WriteMatrix(ent:GetBoneMatrix(boneid):GetInverse() * woundWorldTransform)
+			net.WriteVector(woundsize_blendmode)
+			net.WriteString(deformedtexture)
+			net.WriteString(projectedtexture)
+			net.WriteInt(boneid, 32)
+			net.WriteString(offset)
+		net.Broadcast()
+	end
+
+
+	concommand.Add('sw_breentest_sv', function(ply)
 		local entities = ents.FindInSphere(ply:GetPos(), 2000)
 
 		for _, ent in pairs(entities) do
@@ -288,4 +385,49 @@ if SERVER then
 		end
 	end)
 
+	concommand.Add('sw_shoottest', function(ply)
+		local tr = ply:GetEyeTrace()
+
+		local ent = tr.Entity
+		local woundWorldTransform = Matrix()
+		woundWorldTransform:SetTranslation(tr.HitPos)
+		woundWorldTransform:SetAngles(tr.HitNormal:Angle())
+		woundWorldTransform:SetScale(Vector(10, 10, 10))
+
+		if IsValid(ent) then
+			SimpWound.ApplySimpWoundEasy(
+				ent, 
+				'SimpWoundVertexLit',
+				woundWorldTransform,
+				Vector(1, 0.5, 0), 'models/flesh', 'models/flesh',
+				ent:TranslatePhysBoneToBone(tr.PhysicsBone), 'auto'
+			)
+		end
+	end)
+
+end
+
+
+
+local function auto(ent) 
+	return ent:GetBoneCount() > 1 and SimpWound.Offset.z90 or SimpWound.Offset.none
+end
+
+SimpWound.Offset = {
+	none = Matrix(),
+	z90 = Matrix(),
+	auto = auto,
+}
+
+SimpWound.Offset.z90:SetAngles(Angle(0, 90, 0))
+
+SimpWound.GetOffset = function(ent, key)
+	-- 获取渲染坐标系与世界坐标系的偏移
+	-- 下下策
+	local offset = SimpWound.Offset[key]
+	if isfunction(offset) then
+		return offset(ent)
+	else
+		return offset or SimpWound.Offset.none
+	end
 end
