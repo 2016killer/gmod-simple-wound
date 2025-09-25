@@ -18,9 +18,9 @@ struct PS_INPUT
 float4 main( PS_INPUT i ) : COLOR
 {
 	// 统计像素遮挡场景次数, 奇数次剔除
-	float2 depthTexCoord = i.vWoundData.yz * 0.5  + float2(0.5, 0.5);
+	float2 depthTexCoord = i.vWoundData.yz * 0.5 / woundSize_blendMode.x + float2(0.5, 0.5);
 	float4 multiDepth = tex2D( DepthTextureSampler, depthTexCoord );
-	float4 depths = i.vWoundData.xxxx * 0.5 + float4(0.5, 0.5, 0.5, 0.5);
+	float4 depths = i.vWoundData.xxxx * 0.5 / woundSize_blendMode.x + float4(0.5, 0.5, 0.5, 0.5);
 
 	float inside = frac(dot(step(depths, multiDepth), float4(1.0, 1.0, 1.0, 1.0)) * 0.5) * 2.0;
 

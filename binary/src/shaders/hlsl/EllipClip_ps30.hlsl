@@ -18,7 +18,7 @@ float4 main( PS_INPUT i ) : COLOR
 {
 	// 剔除
 	float dist = i.vWoundData.z;
-	clip( dist - 1.0 );
+	clip( dist - woundSize_blendMode.x );
 
 	// 使用 woundSize_blendMode.xy确定投影范围, woundSize_blendMode.z 决定是否开启alpha混合
 	float2 projTexCoord = i.vWoundData.xy;

@@ -1,3 +1,6 @@
+//====== Copyright � 1996-2007, Valve Corporation, All rights reserved. =======//
+//
+
 //	DYNAMIC: "SKINNING"					"0..1"
 //  DYNAMIC: "COMPRESSED_VERTS"			"0..1"
 //	DYNAMIC: "DOWATERFOG"				"0..1"

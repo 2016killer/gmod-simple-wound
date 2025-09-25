@@ -6,7 +6,7 @@
 class EllipClip_vs30_Static_Index
 {
 public:
-	EllipClip_vs30_Static_Index(  )
+	EllipClip_vs30_Static_Index( )
 	{
 	}
 

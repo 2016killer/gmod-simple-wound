@@ -1,3 +1,6 @@
+//====== Copyright � 1996-2007, Valve Corporation, All rights reserved. =======//
+//
+
 // STATIC: "FLASHLIGHT"					"0..1"
 
 #include "common_flashlight_fxc.h"

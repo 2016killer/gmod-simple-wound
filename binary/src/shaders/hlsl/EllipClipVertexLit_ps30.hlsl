@@ -1,3 +1,6 @@
+//====== Copyright � 1996-2007, Valve Corporation, All rights reserved. =======//
+//
+
 // STATIC: "FLASHLIGHT"					"0..1"
 
 #include "common_flashlight_fxc.h"
@@ -96,7 +99,7 @@ float4 main( PS_INPUT i ) : COLOR
 	// ------SimpWound
 	// 剔除
 	float dist = i.vWoundData.z;
-	clip( dist - 1.0 );
+	clip( dist - woundSize_blendMode.x );
 
 	// 使用 woundSize_blendMode.xy确定投影范围, woundSize_blendMode.z 决定是否开启alpha混合
 	float2 projTexCoord = i.vWoundData.xy;
