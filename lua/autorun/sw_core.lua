@@ -138,6 +138,7 @@ if CLIENT then
 					{
 						['$deformedtexture'] = deformedtexture,
 						['$projectedtexture'] = projectedtexture,
+						['$depthtexture'] = 'sw/spheredepth',
 					}
 				)
 

@@ -22,7 +22,7 @@ struct VS_OUTPUT
 {
     float4 vProjPos					: POSITION;	
 	float2 vBaseTexCoord			: TEXCOORD0;
-	float3 vWoundData 				: TEXCOORD1; 
+	float4 vWoundData 				: TEXCOORD1; 
 };
 
 
@@ -30,10 +30,10 @@ VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
 
-	// 计算相对坐标与距离, yz作为投影坐标(x轴作为投影轴)
+	// 计算相对坐标与距离, yz作为投影纹理坐标(x轴作为投影轴)
 	float4 vLocalPos = mul( v.vPos, mWoundTransformInvert );
 	float fDist = length( vLocalPos.xyz );
-	o.vWoundData = float3(vLocalPos.yz, fDist);
+	o.vWoundData = float4(vLocalPos.xyz, fDist);
 
 	// 蒙皮一条龙
 	float4 vPosition = v.vPos;

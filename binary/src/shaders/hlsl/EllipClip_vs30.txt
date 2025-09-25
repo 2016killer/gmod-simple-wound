@@ -30,7 +30,7 @@ VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
 
-	// 计算相对坐标与距离, yz作为投影坐标(x轴作为投影轴)
+	// 计算相对坐标与距离, yz作为投影纹理坐标(x轴作为投影轴)
 	float4 vLocalPos = mul( v.vPos, mWoundTransformInvert );
 	float fDist = length( vLocalPos.xyz );
 	o.vWoundData = float3(vLocalPos.yz, fDist);

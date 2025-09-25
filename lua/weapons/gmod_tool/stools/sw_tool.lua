@@ -36,11 +36,12 @@ if CLIENT then
 		panel:AddPanel(ctrl)
 
 		local shaderComboBox = panel:ComboBox('#tool.sw_tool.shader', 'sw_tool_shader')
-		shaderComboBox:AddChoice('#sw.simpwound', 'SimpWound')
-		shaderComboBox:AddChoice('#sw.simpwoundvertexlit', 'SimpWoundVertexLit')
 		shaderComboBox:AddChoice('#sw.ellipclip', 'EllipClip')
 		shaderComboBox:AddChoice('#sw.ellipclipvertexlit', 'EllipClipVertexLit')
-	
+		shaderComboBox:AddChoice('#sw.depthtexclip', 'DepthTexClip')
+		shaderComboBox:AddChoice('#sw.depthtexclipvertexlit', 'DepthTexClipVertexLit')
+		shaderComboBox:AddChoice('#sw.simpwound', 'SimpWound')
+		shaderComboBox:AddChoice('#sw.simpwoundvertexlit', 'SimpWoundVertexLit')
 
 
 		panel:NumSlider(
