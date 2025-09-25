@@ -108,7 +108,7 @@ void SimpWound_TextureCombine(
 	baseColor = lerp(
 		undeformedColor,
 		deformedColor,                            
-		step(dist, blendMode)
+		step(dist, deformedSize)
 	);
 } 
 // ------SimpWound

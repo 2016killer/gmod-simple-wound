@@ -25,6 +25,7 @@ if CLIENT then
     end
 
     SimpWound = {}
+    SimpWound.Version = version
     print('[SimpWound]: LUA VERSION ' .. version)
 
     SimpWound.MaterialsCache = SimpWound.MaterialsCache or {}
@@ -62,12 +63,16 @@ if CLIENT then
     SimpWound.PrintSWParams = function(ent)
 		-- 打印实体的伤口材质参数
         print(ent:GetModel())
-        PrintTable(ent.sw_params)
+		if istable(ent.sw_params) then
+        	PrintTable(ent.sw_params)
+        end
     end
 
     net.Receive('sw_query_params', function()
         local ent = net.ReadEntity()
-        SimpWound.PrintSWParams(ent)
+		if IsValid(ent) then
+        	SimpWound.PrintSWParams(ent)
+        end
     end)
 
 	local WoundRender = function(self)
@@ -136,8 +141,6 @@ if CLIENT then
 					}
 				)
 
-				PrintTable(matvar:GetKeyValues())
-
 				matvar:SetTexture('$basetexture', temp:GetTexture('$basetexture'))
 				SimpWound.MaterialsCache[matname] = matvar
 
@@ -153,7 +156,9 @@ if CLIENT then
 	net.Receive('sw_apply', function()
 		local params = net.ReadTable()
         local ent = net.ReadEntity()
-        SimpWound.ApplySimpWound(ent, params)
+		if IsValid(ent) then
+			SimpWound.ApplySimpWound(ent, params)
+		end
     end)
 
 	concommand.Add('sw_breentest', function(ply, cmd, args)
@@ -188,9 +193,10 @@ if CLIENT then
 		-- 这方法有点傻逼, 但是很有效
 		local model = ent:GetModel()
 		local modelent = ClientModels[model]
-		if not modelent then
+		if not IsValid(modelent) then
 			modelent = ClientsideModel(model)
 			modelent:SetupBones()
+			modelent:SetNoDraw(true)
 			ClientModels[model] = modelent
 		end
 
@@ -216,15 +222,28 @@ if CLIENT then
 		local boneid = net.ReadInt(32)
 		local offset = net.ReadString()
 
-        SimpWound.ApplySimpWoundEasy(ent, 
-			shader, 
-			woundLocalTransform, 
-			woundsize_blendmode, deformedtexture, projectedtexture, 
-			boneid, offset
-		)
+		if IsValid(ent) then
+			SimpWound.ApplySimpWoundEasy(ent, 
+				shader, 
+				woundLocalTransform, 
+				woundsize_blendmode, deformedtexture, projectedtexture, 
+				boneid, offset
+			)
+		end
     end)
 
-	
+	SimpWound.Reset = function(ent)
+		ent.RenderOverride = nil
+		ent.sw_params = nil
+		ent.sw_materials = nil
+	end
+
+	net.Receive('sw_reset', function()
+		local ent = net.ReadEntity()
+		if IsValid(ent) then
+			SimpWound.Reset(ent)
+		end
+	end)
 end
 
 
@@ -232,6 +251,7 @@ if SERVER then
     util.AddNetworkString('sw_query_params')
 	util.AddNetworkString('sw_apply_easy')
 	util.AddNetworkString('sw_apply')
+	util.AddNetworkString('sw_reset')
 
     SimpWound = {}
 
@@ -381,6 +401,13 @@ if SERVER then
 			})
 		end
 	end)
+
+	SimpWound.Reset = function(ent)
+		net.Start('sw_reset')
+			net.WriteEntity(ent)
+		net.Broadcast()
+	end
+
 end
 
 

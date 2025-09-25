@@ -1,8 +1,10 @@
+AddCSLuaFile()
 -------------------------------UI-------------------------------
 if CLIENT then
-	TOOL.Category = language.GetPhrase('#tool.sw_sphericaldeform_tool.category')
-	TOOL.Name = '#tool.sw_sphericaldeform_tool.name'
+	TOOL.Category = language.GetPhrase('#tool.sw_tool.category')
+	TOOL.Name = '#tool.sw_tool.name'
 
+	TOOL.ClientConVar['shader'] = 'SimpWoundVertexLit'
 	TOOL.ClientConVar['sx'] = '10.0'
 	TOOL.ClientConVar['sy'] = '5'
 	TOOL.ClientConVar['sz'] = '5'
@@ -16,65 +18,72 @@ if CLIENT then
 	TOOL.ClientConVar['deformtex'] = 'models/flesh'
 
 	function TOOL.BuildCPanel(panel)
-		panel:Clear()
-
 		local ctrl = vgui.Create('ControlPresets', panel)
-		ctrl:SetPreset('sw_sphericaldeform_tool')
+		ctrl:SetPreset('sw_tool')
 		local default =	{
-			sw_sphericaldeform_tool_sx = '10.0',
-			sw_sphericaldeform_tool_sy = '10.0',
-			sw_sphericaldeform_tool_sz = '10.0',
-			sw_sphericaldeform_tool_ws = '1.0',
-			sw_sphericaldeform_tool_bs = '0.5',
-			sw_sphericaldeform_tool_offset = 'auto',
-			sw_sphericaldeform_tool_projtex = 'models/flesh',
-			sw_sphericaldeform_tool_deformtex = 'models/flesh',
+			sw_tool_shader = 'SimpWoundVertexLit',
+			sw_tool_sx = '10.0',
+			sw_tool_sy = '5',
+			sw_tool_sz = '5',
+			sw_tool_ws = '1.0',
+			sw_tool_bs = '0.5',
+			sw_tool_offset = 'auto',
+			sw_tool_projtex = 'models/flesh',
+			sw_tool_deformtex = 'models/flesh',
 		}
 		ctrl:AddOption('#preset.default', default)
 		for k, v in pairs(default) do ctrl:AddConVar(k) end
 		panel:AddPanel(ctrl)
 
+		local shaderComboBox = panel:ComboBox('#tool.sw_tool.shader', 'sw_tool_shader')
+		shaderComboBox:AddChoice('#sw.simpwound', 'SimpWound')
+		shaderComboBox:AddChoice('#sw.simpwoundvertexlit', 'SimpWoundVertexLit')
+		shaderComboBox:AddChoice('#sw.ellipclip', 'EllipClip')
+		shaderComboBox:AddChoice('#sw.ellipclipvertexlit', 'EllipClipVertexLit')
+	
+
+
 		panel:NumSlider(
-			'#tool.sw_sphericaldeform_tool.sx', 
-			'sw_sphericaldeform_tool_sx', 
+			'#tool.sw_tool.sx', 
+			'sw_tool_sx', 
 			1, 
 			50, 
 			3
 		)
 
 		panel:NumSlider(
-			'#tool.sw_sphericaldeform_tool.sy', 
-			'sw_sphericaldeform_tool_sy', 
+			'#tool.sw_tool.sy', 
+			'sw_tool_sy', 
 			1, 
 			50, 
 			3
 		)
 
 		panel:NumSlider(
-			'#tool.sw_sphericaldeform_tool.sz', 
-			'sw_sphericaldeform_tool_sz', 
+			'#tool.sw_tool.sz', 
+			'sw_tool_sz', 
 			1, 
 			50, 
 			3
 		)
 
 		panel:NumSlider(
-			'#tool.sw_sphericaldeform_tool.ws', 
-			'sw_sphericaldeform_tool_ws', 
+			'#tool.sw_tool.ws', 
+			'sw_tool_ws', 
 			0, 
 			2, 
 			3
 		)
 
 		panel:NumSlider(
-			'#tool.sw_sphericaldeform_tool.bs', 
-			'sw_sphericaldeform_tool_bs', 
+			'#tool.sw_tool.bs', 
+			'sw_tool_bs', 
 			0, 
 			2, 
 			3
 		)
 
-		local offsetComboBox = panel:ComboBox('#tool.sw_sphericaldeform_tool.offset', 'sw_sphericaldeform_tool_offset')
+		local offsetComboBox = panel:ComboBox('#tool.sw_tool.offset', 'sw_tool_offset')
 		if SimpWound then
 			for k, v in pairs(SimpWound.Offset) do
 				offsetComboBox:AddChoice(k, k)
@@ -89,13 +98,13 @@ if CLIENT then
 			'models/props_wasteland/wood_fence01a'
 		}
 
-		panel:Help('#tool.sw_sphericaldeform_tool.deformtex')
+		panel:Help('#tool.sw_tool.deformtex')
 		local MatSelect2 = vgui.Create('MatSelect', panel)
 		MatSelect2:Dock(TOP)
 		Derma_Hook(MatSelect2.List, 'Paint', 'Paint', 'Panel')
 
 		panel:AddItem(MatSelect2)
-		MatSelect2:SetConVar('sw_sphericaldeform_tool_deformtex')
+		MatSelect2:SetConVar('sw_tool_deformtex')
 
 		MatSelect2:SetAutoHeight(true)
 		MatSelect2:SetItemWidth(64)
@@ -106,13 +115,13 @@ if CLIENT then
 		end
 
 
-		panel:Help('#tool.sw_sphericaldeform_tool.projtex')
+		panel:Help('#tool.sw_tool.projtex')
 		local MatSelect = vgui.Create('MatSelect', panel)
 		MatSelect:Dock(TOP)
 		Derma_Hook(MatSelect.List, 'Paint', 'Paint', 'Panel')
 
 		panel:AddItem(MatSelect)
-		MatSelect:SetConVar('sw_sphericaldeform_tool_projtex')
+		MatSelect:SetConVar('sw_tool_projtex')
 
 		MatSelect:SetAutoHeight(true)
 		MatSelect:SetItemWidth(64)
@@ -128,7 +137,7 @@ if CLIENT then
 	TOOL.Information = {
 		{name = 'apply', icon = 'gui/lmb.png'},
 		{name = 'bindpose', icon = 'gui/rmb.png'},
-		{name = 'print', icon = 'gui/r.png'},
+		{name = 'reset', icon = 'gui/r.png'},
 	}
 
 end
@@ -174,10 +183,9 @@ function TOOL:LeftClick(tr)
 		)
 
 		if IsValid(ent) then
-			print(self:GetClientInfo('projtex'), self:GetClientInfo('deformtex'), self:GetClientInfo('offset'))
 			SimpWound.ApplySimpWoundEasy(
 				ent, 
-				'SimpWoundVertexLit',
+				self:GetClientInfo('shader'),
 				woundWorldTransform,
 				Vector(
 					self:GetClientNumber('ws'), 
@@ -194,15 +202,22 @@ function TOOL:LeftClick(tr)
 end
 
 function TOOL:Reload(tr)
-	if !game.SinglePlayer() and SERVER then
-		return
-	end
-
 	local ent = tr.Entity
 	if not IsValid(ent) then
 		return
 	end
 
+	if SERVER then
+		if istable(ent.physdata) then
+			SimpWound.PlayPhys(ent, 'origin', ent.physdata)
+			ent.physdata = nil
+		else
+			ent.physdata = SimpWound.RecordPhys(ent, 'origin')
+			SimpWound.BindPose(ent)
+		end
+	end
+
+	SimpWound.Reset(ent)
 	SimpWound.PrintSWParams(ent)
 
 	return true
@@ -242,6 +257,8 @@ if CLIENT then
 				ghostent:SetAngles(ent:GetAngles())
 			end
 		end
+
+		self.DrawMaskFlag = !input.IsKeyDown(KEY_E)
 	end
 
 	function TOOL:DrawMask()
@@ -339,22 +356,32 @@ if CLIENT then
 			SimpWound.DrawCoordinate(woundEllip)
 			render.SetMaterial(wireframe)
 			SimpWound.DrawEllipsoid(woundEllip, 8)
+
+			if IsValid(ghostent) then
+				SimpWound.DrawCoordinate(
+					ghostent:GetWorldTransformMatrix() * SimpWound.GetOffset(self:GetClientInfo('offset')), 
+					30
+				)
+			end
 		cam.End3D()
 	end
 
 	function TOOL:DrawHUD()
-		-- 安全调用
-		local success, err = pcall(self.DrawMask, self)
-		if not success then
-			ErrorNoHalt(string.format('[SimpWound]: %s\n', err))
-			render.OverrideColorWriteEnable(false)
-			render.OverrideDepthEnable(false)
-			return
+		if self.DrawMaskFlag then
+			-- 安全调用
+			local success, err = pcall(self.DrawMask, self)
+			if not success then
+				ErrorNoHalt(string.format('[SimpWound]: %s\n', err))
+				render.OverrideColorWriteEnable(false)
+				render.OverrideDepthEnable(false)
+				return
+			end
 		end
 	end
 
 
 	local errmsg = language.GetPhrase('#sw.missmodule')
+	local msg = language.GetPhrase('#sw.versionhint') .. SimpWound.Version
 	function TOOL:DrawToolScreen(width, height)
 		-- 错误提示
 		if not SimpWound then
@@ -367,6 +394,19 @@ if CLIENT then
 				0, 
 				0, 
 				Color(255, 0, 0, 255), 
+				TEXT_ALIGN_LEFT, 
+				TEXT_ALIGN_TOP 
+			)
+		else
+			surface.SetDrawColor(0, 0, 0, 255)
+			surface.DrawRect(0, 0, width, height)
+
+			draw.SimpleText(
+				msg, 
+				'DermaLarge', 
+				0, 
+				0, 
+				Color(0, 255, 0, 255), 
 				TEXT_ALIGN_LEFT, 
 				TEXT_ALIGN_TOP 
 			)
