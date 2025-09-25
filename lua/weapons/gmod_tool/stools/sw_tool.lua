@@ -16,6 +16,7 @@ if CLIENT then
 
 	TOOL.ClientConVar['projtex'] = 'models/flesh'
 	TOOL.ClientConVar['deformtex'] = 'models/flesh'
+	TOOL.ClientConVar['depthtex'] = 'sw/conedepth'
 
 	function TOOL.BuildCPanel(panel)
 		local ctrl = vgui.Create('ControlPresets', panel)
@@ -30,6 +31,7 @@ if CLIENT then
 			sw_tool_offset = 'auto',
 			sw_tool_projtex = 'models/flesh',
 			sw_tool_deformtex = 'models/flesh',
+			sw_tool_depthtex = 'sw/conedepth',
 		}
 		ctrl:AddOption('#preset.default', default)
 		for k, v in pairs(default) do ctrl:AddConVar(k) end
@@ -133,6 +135,29 @@ if CLIENT then
 		end
 
 
+		local items2 = {
+			'sw/spheredepth',
+			'sw/conedepth',
+			'sw/squaredepth',
+		}
+
+		panel:Help('#tool.sw_tool.depthtex')
+		local MatSelect3 = vgui.Create('MatSelect', panel)
+		MatSelect3:Dock(TOP)
+		Derma_Hook(MatSelect3.List, 'Paint', 'Paint', 'Panel')
+
+		panel:AddItem(MatSelect3)
+		MatSelect3:SetConVar('sw_tool_depthtex')
+
+		MatSelect3:SetAutoHeight(true)
+		MatSelect3:SetItemWidth(64)
+		MatSelect3:SetItemHeight(64)
+
+		for k, material in pairs(items2) do
+			MatSelect3:AddMaterial(material, material)
+		end
+
+
 	end
 
 	TOOL.Information = {
@@ -193,7 +218,7 @@ function TOOL:LeftClick(tr)
 					self:GetClientNumber('bs'),
 					0
 				), 
-				self:GetClientInfo('deformtex'), self:GetClientInfo('projtex'),
+				self:GetClientInfo('deformtex'), self:GetClientInfo('projtex'), self:GetClientInfo('depthtex'),
 				ent:TranslatePhysBoneToBone(tr.PhysicsBone), self:GetClientInfo('offset')
 			)
 		end
@@ -208,15 +233,15 @@ function TOOL:Reload(tr)
 		return
 	end
 
-	if SERVER then
-		if istable(ent.physdata) then
-			SimpWound.PlayPhys(ent, 'origin', ent.physdata)
-			ent.physdata = nil
-		else
-			ent.physdata = SimpWound.RecordPhys(ent, 'origin')
-			SimpWound.BindPose(ent)
-		end
-	end
+	// if SERVER then
+	// 	if istable(ent.physdata) then
+	// 		SimpWound.PlayPhys(ent, 'origin', ent.physdata)
+	// 		ent.physdata = nil
+	// 	else
+	// 		ent.physdata = SimpWound.RecordPhys(ent, 'origin')
+	// 		SimpWound.BindPose(ent)
+	// 	end
+	// end
 
 	SimpWound.Reset(ent)
 	SimpWound.PrintSWParams(ent)
@@ -259,10 +284,25 @@ if CLIENT then
 			end
 		end
 
-		self.DrawMaskFlag = !input.IsKeyDown(KEY_E)
+		self.DrawMarkFlag = !input.IsKeyDown(KEY_E)
 	end
 
-	function TOOL:DrawMask()
+	function TOOL:DrawMarkModel(transform, matvar)
+		local shader = self:GetClientInfo('shader')
+		if shader == 'DepthTexClip' or shader == 'DepthTexClipVertexLit' then
+			local depthtex = self:GetClientInfo('depthtex')
+			local painter = SimpWound.DepthtexModelPainter[depthtex]
+			if isfunction(painter) then
+				painter(transform, matvar)
+			end
+		else
+			render.SetMaterial(matvar)
+			SimpWound.DrawEllipsoid(transform, 8)
+		end
+	end
+
+
+	function TOOL:DrawMark()
 		-- 标记作用范围
 		local tr = LocalPlayer():GetEyeTrace()
 
@@ -317,8 +357,9 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_INCR)
 
-				render.SetMaterial(vol_light001)
-				SimpWound.DrawEllipsoid(woundEllip, 8)
+				self:DrawMarkModel(woundEllip, vol_light001)
+	
+				
 
 				render.SetStencilReferenceValue(1)
 				render.SetStencilCompareFunction(STENCIL_EQUAL)
@@ -355,8 +396,7 @@ if CLIENT then
 
 			
 			SimpWound.DrawCoordinate(woundEllip)
-			render.SetMaterial(wireframe)
-			SimpWound.DrawEllipsoid(woundEllip, 8)
+			self:DrawMarkModel(woundEllip, wireframe)
 
 			if IsValid(ghostent) then
 				SimpWound.DrawCoordinate(
@@ -368,9 +408,9 @@ if CLIENT then
 	end
 
 	function TOOL:DrawHUD()
-		if self.DrawMaskFlag then
+		if self.DrawMarkFlag then
 			-- 安全调用
-			local success, err = pcall(self.DrawMask, self)
+			local success, err = pcall(self.DrawMark, self)
 			if not success then
 				ErrorNoHalt(string.format('[SimpWound]: %s\n', err))
 				render.OverrideColorWriteEnable(false)
@@ -382,7 +422,7 @@ if CLIENT then
 
 
 	local errmsg = language.GetPhrase('#sw.missmodule')
-	local msg = language.GetPhrase('#sw.versionhint') .. SimpWound.Version
+	local msg = language.GetPhrase('#sw.versionhint') .. (SimpWound and SimpWound.Version or '?')
 	function TOOL:DrawToolScreen(width, height)
 		-- 错误提示
 		if not SimpWound then

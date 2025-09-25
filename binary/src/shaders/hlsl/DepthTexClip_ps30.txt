@@ -18,21 +18,21 @@ struct PS_INPUT
 float4 main( PS_INPUT i ) : COLOR
 {
 	// 统计像素遮挡场景次数, 奇数次剔除
-	float2 depthTexCoord = i.vWoundData.yz + float2(0.5, 0.5);
+	float2 depthTexCoord = i.vWoundData.yz * 0.5  + float2(0.5, 0.5);
 	float4 multiDepth = tex2D( DepthTextureSampler, depthTexCoord );
-	float4 depths = i.vWoundData.xxxx + float4(0.5, 0.5, 0.5, 0.5);
+	float4 depths = i.vWoundData.xxxx * 0.5 + float4(0.5, 0.5, 0.5, 0.5);
 
 	float inside = frac(dot(step(depths, multiDepth), float4(1.0, 1.0, 1.0, 1.0)) * 0.5) * 2.0;
 
-	clip(0.5 - inside);
-	// 超出边界的不参与剔除
-	// float crossRange = dot(
-	// 	step(depthTexCoord, float2(0.0, 0.0)) 
-	// 		+ step(float2(1.0, 1.0), depthTexCoord),
-	// 	float2(1.0, 1.0)
-	// );
 
-	// clip(0.5 - inside * step(crossRange, 0.5));
+	// 限制边界
+	float crossRange = dot(
+		step(depthTexCoord, float2(0.0, 0.0)) 
+			+ step(float2(1.0, 1.0), depthTexCoord),
+		float2(1.0, 1.0)
+	);
+
+	clip(0.5 - inside * step(crossRange, 0.5));
 
 
 

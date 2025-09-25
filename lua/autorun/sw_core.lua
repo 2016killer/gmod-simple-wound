@@ -31,6 +31,7 @@ if CLIENT then
     SimpWound.MaterialsCache = SimpWound.MaterialsCache or {}
 
     local zerovec = Vector()
+	local zeroang = Angle()
     local unitx = Vector(1, 0, 0)
     local unity = Vector(0, 1, 0)
     local unitz = Vector(0, 0, 1)
@@ -47,6 +48,13 @@ if CLIENT then
             render.DrawLine(zerovec, unitx * size, Color(255, 0, 0, 255), false)
             render.DrawLine(zerovec, unity * size, Color(0, 255, 0, 255), false)
             render.DrawLine(zerovec, unitz * size, Color(0, 0, 255, 255), false)   
+        cam.PopModelMatrix()
+    end
+
+    SimpWound.DrawBox = function(transform, size)
+		size = size or 1
+        cam.PushModelMatrix(transform)
+			render.DrawBox(zerovec, zeroang, Vector(-size, -size, -size), Vector(size, size, size))
         cam.PopModelMatrix()
     end
 
@@ -122,8 +130,10 @@ if CLIENT then
 			local idx = i - 1
 			local matpathUsed = ent:GetSubMaterial(idx) == '' and matpath or ent:GetSubMaterial(idx)
 		
-			local deformedtexture, projectedtexture = params.deformedtexture or 'models/flesh', params.projectedtexture or 'models/flesh'
-			local matname = string.format('%s_%s_%s_%s', matpathUsed, shader, deformedtexture, projectedtexture)
+			local deformedtexture = params.deformedtexture or 'models/flesh'
+			local projectedtexture = params.projectedtexture or 'models/flesh'
+			local depthtexture = params.depthtexture or ''
+			local matname = string.format('%s_%s_%s_%s_%s', matpathUsed, shader, deformedtexture, projectedtexture, depthtexture)
 
 			-- 缓存材质
 			local matcache = SimpWound.MaterialsCache[matname]
@@ -136,13 +146,13 @@ if CLIENT then
 					matname,
 					shader,
 					{
+						['$basetexture'] = temp:GetTexture('$basetexture'):GetName(),
 						['$deformedtexture'] = deformedtexture,
 						['$projectedtexture'] = projectedtexture,
-						['$depthtexture'] = 'sw/spheredepth',
+						['$depthtexture'] = depthtexture,
 					}
 				)
 
-				matvar:SetTexture('$basetexture', temp:GetTexture('$basetexture'))
 				SimpWound.MaterialsCache[matname] = matvar
 
 				ent.sw_materials[i] = matvar	
@@ -188,7 +198,7 @@ if CLIENT then
 	SimpWound.ApplySimpWoundEasy = function(ent, 
 		shader,
 		woundLocalTransform,
-		woundsize_blendmode, deformedtexture, projectedtexture,
+		woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
 		boneid, offset
 	)
 		-- 这方法有点傻逼, 但是很有效
@@ -208,6 +218,7 @@ if CLIENT then
 		params.shader = shader or 'SimpWoundVertexLit'
 		params.deformedtexture = deformedtexture or 'models/flesh'
 		params.projectedtexture = projectedtexture or 'models/flesh'
+		params.depthtexture = depthtexture or ''
 	
 		SimpWound.ApplySimpWound(ent, params)
 	end
@@ -220,6 +231,7 @@ if CLIENT then
 		local woundsize_blendmode = net.ReadVector()
 		local deformedtexture = net.ReadString()
 		local projectedtexture = net.ReadString()
+		local depthtexture = net.ReadString()
 		local boneid = net.ReadInt(32)
 		local offset = net.ReadString()
 
@@ -227,7 +239,7 @@ if CLIENT then
 			SimpWound.ApplySimpWoundEasy(ent, 
 				shader, 
 				woundLocalTransform, 
-				woundsize_blendmode, deformedtexture, projectedtexture, 
+				woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
 				boneid, offset
 			)
 		end
@@ -245,6 +257,64 @@ if CLIENT then
 			SimpWound.Reset(ent)
 		end
 	end)
+
+
+	local function draw_spheredepth(transform, matvar)
+		render.SetMaterial(matvar)
+		SimpWound.DrawEllipsoid(transform, 8)
+	end
+
+
+	local conemodel
+	local conemodeloffset = Matrix()
+	conemodeloffset:SetTranslation(Vector(0.5, 0, 0))
+	conemodeloffset:SetAngles(Angle(-90, 0, 0))
+	conemodeloffset:SetScale(Vector(1 / 23.5, 1 / 23.5, 1 / 23.5))
+	
+	local function draw_conedepth(transform, matvar)
+		if IsValid(conemodel) then
+			transform = transform * conemodeloffset
+			conemodel:EnableMatrix('RenderMultiply', transform)
+
+			render.MaterialOverride(matvar)
+				conemodel:DrawModel()
+			render.MaterialOverride()
+		else
+			conemodel = ClientsideModel('models/hunter/misc/cone1x05.mdl')
+			conemodel:SetPos(zerovec)
+			conemodel:SetAngles(zeroang)
+			conemodel:SetNoDraw(true)
+		end
+	end
+
+	local startpos
+	concommand.Add('mesure', function(ply)
+		if startpos then
+			local endpos = ply:GetEyeTrace().HitPos
+			local dist = (endpos - startpos):Length()
+			print('距离: ' .. dist)
+
+			debugoverlay.Line(endpos, startpos, 1, nil, true)
+
+			startpos = nil
+		else
+			startpos = ply:GetEyeTrace().HitPos
+		end
+	end) 
+
+
+	local function draw_squaredepth(transform, matvar)
+		render.SetMaterial(matvar)
+		SimpWound.DrawBox(transform)
+	end
+
+	-- 自己注册吧
+	SimpWound.DepthtexModelPainter = {
+		['sw/spheredepth' ] = draw_spheredepth,
+		['sw/conedepth'] = draw_conedepth,
+		['sw/squaredepth'] = draw_squaredepth
+	}
+
 end
 
 
@@ -365,7 +435,7 @@ if SERVER then
 	SimpWound.ApplySimpWoundEasy = function(ent, 
 		shader,
 		woundWorldTransform,
-		woundsize_blendmode, deformedtexture, projectedtexture,
+		woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
 		boneid, offset
 	)
 		local woundLocalTransform = GetBoneMatrix(ent, boneid):GetInverse() * woundWorldTransform
@@ -377,6 +447,7 @@ if SERVER then
 			net.WriteVector(woundsize_blendmode)
 			net.WriteString(deformedtexture)
 			net.WriteString(projectedtexture)
+			net.WriteString(depthtexture)
 			net.WriteInt(boneid, 32)
 			net.WriteString(offset)
 		net.Broadcast()

@@ -6,7 +6,7 @@
 class DepthTexClip_vs30_Static_Index
 {
 public:
-	DepthTexClip_vs30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
+	DepthTexClip_vs30_Static_Index(  )
 	{
 	}
 
@@ -46,7 +46,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	DepthTexClip_vs30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
+	DepthTexClip_vs30_Dynamic_Index(  )
 	{
 		m_nSKINNING = 0;
 		m_nCOMPRESSED_VERTS = 0;

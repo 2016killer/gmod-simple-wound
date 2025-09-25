@@ -5,6 +5,7 @@
 #include "shaders/EllipClipVertexLit.h"
 #include "shaders/VertexLitInvert.h"
 #include "shaders/DepthTexClip.h"
+#include "shaders/DepthTexClipVertexLit.h"
 // This file is intentionally overcommented because of how undocumented source shaders are
 // Note that this is *my* understanding of how this works. I very well could be butchering what this actually is doing
 
@@ -61,6 +62,7 @@ bool inject_shaders() {
 	shaderlibdll->m_ShaderDict.Insert(EllipClipVertexLit::s_Name, &EllipClipVertexLit::s_ShaderInstance);
 	shaderlibdll->m_ShaderDict.Insert(VertexLitInvert::s_Name, &VertexLitInvert::s_ShaderInstance);
 	shaderlibdll->m_ShaderDict.Insert(DepthTexClip::s_Name, &DepthTexClip::s_ShaderInstance);
+	shaderlibdll->m_ShaderDict.Insert(DepthTexClipVertexLit::s_Name, &DepthTexClipVertexLit::s_ShaderInstance);
 	
 	return true;
 }
@@ -75,6 +77,7 @@ bool eject_shaders() {
 		shaderlibdll->m_ShaderDict.Remove(EllipClipVertexLit::s_Name);
 		shaderlibdll->m_ShaderDict.Remove(VertexLitInvert::s_Name);
 		shaderlibdll->m_ShaderDict.Remove(DepthTexClip::s_Name);
+		shaderlibdll->m_ShaderDict.Remove(DepthTexClipVertexLit::s_Name);
 		
 		//shaderlibdll->m_ShaderDict.PurgeAndDeleteElements();
 

@@ -88,30 +88,6 @@ float4 FinalOutputConst( const float4 vShaderColor, float pixelFogFactor, float 
 	return result;
 }
 
-// ------SimpWound
-void SimpWound_TextureCombine(
-	const float4 deformedColor, 
-	const float4 projColor, 
-	const float deformedSize, const float projSize, const float blendMode,
-	const float dist, 
-	inout float4 baseColor)
-{
-	float4 undeformedColor = float4(
-		lerp(
-			baseColor.rgb,
-			projColor.rgb,
-			(1 - smoothstep(deformedSize, deformedSize + projSize, dist)) * lerp(1, projColor.a, step(0.5, blendMode))
-		), 
-		1
-	);
-
-	baseColor = lerp(
-		undeformedColor,
-		deformedColor,                            
-		step(dist, deformedSize)
-	);
-} 
-// ------SimpWound
 
 static bool bFlashlight = FLASHLIGHT ? true : false;
 

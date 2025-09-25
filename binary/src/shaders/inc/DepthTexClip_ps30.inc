@@ -12,7 +12,7 @@
 class DepthTexClip_ps30_Static_Index
 {
 public:
-	DepthTexClip_ps30_Static_Index( IShaderShadow* pShaderShadow, IMaterialVar** params )
+	DepthTexClip_ps30_Static_Index(  )
 	{
 	}
 
@@ -28,7 +28,7 @@ public:
 class DepthTexClip_ps30_Dynamic_Index
 {
 public:
-	DepthTexClip_ps30_Dynamic_Index( IShaderDynamicAPI* pShaderAPI )
+	DepthTexClip_ps30_Dynamic_Index(  )
 	{
 	}
 
