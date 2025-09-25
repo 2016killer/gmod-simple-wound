@@ -408,7 +408,7 @@ if CLIENT then
 	end
 
 	function TOOL:DrawHUD()
-		if self.DrawMarkFlag then
+		if self.DrawMarkFlag and SimpWound then
 			-- 安全调用
 			local success, err = pcall(self.DrawMark, self)
 			if not success then
