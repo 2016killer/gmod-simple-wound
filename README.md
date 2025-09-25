@@ -64,3 +64,16 @@
 
 ## 4.反向漫反射着色 (2016killer的补充，并不重要)
 用于配合射线剔除着色渲染伤口内部, 只适用于不需要蒙皮的模型
+
+
+
+
+# 编译着色器
+参考文档 https://developer.valvesoftware.com/wiki/Zh/Shader_Authoring
+说实话，我不太懂，资料很少，是白狼与AI豆包激烈讨论得出的，首先准备
+1. sdk源码 (https://github.com/ValveSoftware/source-sdk-2013)
+2. sdk运行版 (skd-2013-singleplayer, 可以从steam下载)
+3. SCell555 (https://github.com/SCell555/ShaderCompile/releases/tag/build_235_20231013.2)
+
+然后按文档中设置，完成后，复制src\materialsystem\stdshaders\buildepisodicshaders.bat改名buildgmodshaders.bat，修改其中的目录指向你的gmod和sdk运行版，然后将你的着色器文件复制到src\materialsystem\stdshaders\目录下，然后修改stdshader_dx9_20b.txt或stdshader_dx9_30.txt指向你的着色器，运行buildgmodshaders.bat。
+项目中使用了python自动复制着色器文件，但需要设置相关环境变量。
