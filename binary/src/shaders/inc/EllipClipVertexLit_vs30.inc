@@ -3,7 +3,7 @@
 
 #pragma once
 #include "shaderlib/cshader.h"
-class SimpWoundVertexLit_vs30_Static_Index
+class EllipClipVertexLit_vs30_Static_Index
 {
 	unsigned int m_nFLASHLIGHT : 2;
 #ifdef _DEBUG
@@ -19,7 +19,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_vs30_Static_Index(  )
+	EllipClipVertexLit_vs30_Static_Index(  )
 	{
 		m_nFLASHLIGHT = 0;
 #ifdef _DEBUG
@@ -34,10 +34,10 @@ public:
 	}
 };
 
-#define shaderStaticTest_SimpWoundVertexLit_vs30 vsh_forgot_to_set_static_FLASHLIGHT
+#define shaderStaticTest_EllipClipVertexLit_vs30 vsh_forgot_to_set_static_FLASHLIGHT
 
 
-class SimpWoundVertexLit_vs30_Dynamic_Index
+class EllipClipVertexLit_vs30_Dynamic_Index
 {
 	unsigned int m_nSKINNING : 2;
 	unsigned int m_nCOMPRESSED_VERTS : 2;
@@ -75,7 +75,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_vs30_Dynamic_Index(  )
+	EllipClipVertexLit_vs30_Dynamic_Index(  )
 	{
 		m_nSKINNING = 0;
 		m_nCOMPRESSED_VERTS = 0;
@@ -94,5 +94,5 @@ public:
 	}
 };
 
-#define shaderDynamicTest_SimpWoundVertexLit_vs30 vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_COMPRESSED_VERTS + vsh_forgot_to_set_dynamic_DOWATERFOG
+#define shaderDynamicTest_EllipClipVertexLit_vs30 vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_COMPRESSED_VERTS + vsh_forgot_to_set_dynamic_DOWATERFOG
 

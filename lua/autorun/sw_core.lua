@@ -434,3 +434,13 @@ SimpWound.GetOffset = function(ent, key)
 		return offset or SimpWound.Offset.none
 	end
 end
+
+if CLIENT then
+	local mat = Material('sw/test')
+	concommand.Add('shit', function(ply)
+		local ent = ply:GetEyeTrace().Entity
+	
+		ent:SetMaterial('sw/test')
+
+	end)
+end

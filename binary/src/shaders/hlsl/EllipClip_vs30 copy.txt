@@ -3,11 +3,12 @@
 
 #include "common_vs_fxc.h"
 
+// 不太懂hlsl，瞎几把乱写的，仅供参考
+
 static const bool g_bSkinning		= SKINNING ? true : false;
 
-float4x4 mMaskTransform1	:  register( SHADER_SPECIFIC_CONST_0 );
-float4x4 mMaskTransform2	:  register( SHADER_SPECIFIC_CONST_4 );
-
+const float4x4 mWoundTransformInvert	:  register( SHADER_SPECIFIC_CONST_0 );
+const float3 vWoundSize_blendMode		:  register( SHADER_SPECIFIC_CONST_4 );
 
 struct VS_INPUT
 {
@@ -20,11 +21,8 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
     float4 vProjPos					: POSITION;	
-	float  flFog					: FOG;
 	float2 vBaseTexCoord			: TEXCOORD0;
-	float4 vLocalPos1 				: TEXCOORD1; 
-	float4 vLocalPos2 				: TEXCOORD2; 
-	float2 vDist 					: TEXCOORD3; 
+	float3 vWoundData 				: TEXCOORD1; 
 };
 
 
@@ -32,14 +30,12 @@ VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
 
-	float4 vLocalPos1 = mul( v.vPos, mMaskTransform1 );
-	o.vLocalPos1 = vLocalPos1.xyz;
-	o.fDist1 = length( vLocalPos1.xyz );
+	// 计算相对坐标与距离, yz作为投影坐标(x轴作为投影轴)
+	float4 vLocalPos = mul( v.vPos, mWoundTransformInvert );
+	float fDist = length( vLocalPos.xyz );
+	o.vWoundData = float3(vLocalPos.yz, fDist);
 
-	float4 vLocalPos2 = mul( v.vPos, mMaskTransform2 );
-	o.vLocalPos2 = vLocalPos2.xyz;
-	o.fDist2 = length( vLocalPos2.xyz );
-
+	// 蒙皮一条龙
 	float4 vPosition = v.vPos;
 	float3 worldPos;
 	SkinPosition( 
@@ -52,7 +48,6 @@ VS_OUTPUT main( const VS_INPUT v )
 	o.vProjPos = vProjPos;
 
 	o.vBaseTexCoord = v.vBaseTexCoord;
-	o.flFog = 0;
 
 	return o;
 }

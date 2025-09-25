@@ -9,10 +9,10 @@
 
 #pragma once
 #include "shaderlib/cshader.h"
-class SimpWound_ps30_Static_Index
+class EllipClip_ps30_Static_Index
 {
 public:
-	SimpWound_ps30_Static_Index(  )
+	EllipClip_ps30_Static_Index(  )
 	{
 	}
 
@@ -22,13 +22,13 @@ public:
 	}
 };
 
-#define shaderStaticTest_SimpWound_ps30 1
+#define shaderStaticTest_EllipClip_ps30 1
 
 
-class SimpWound_ps30_Dynamic_Index
+class EllipClip_ps30_Dynamic_Index
 {
 public:
-	SimpWound_ps30_Dynamic_Index(  )
+	EllipClip_ps30_Dynamic_Index(  )
 	{
 	}
 
@@ -38,5 +38,5 @@ public:
 	}
 };
 
-#define shaderDynamicTest_SimpWound_ps30 1
+#define shaderDynamicTest_EllipClip_ps30 1
 

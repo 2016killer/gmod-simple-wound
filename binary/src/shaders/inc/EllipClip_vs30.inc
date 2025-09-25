@@ -3,10 +3,10 @@
 
 #pragma once
 #include "shaderlib/cshader.h"
-class SimpWound_vs30_Static_Index
+class EllipClip_vs30_Static_Index
 {
 public:
-	SimpWound_vs30_Static_Index(  )
+	EllipClip_vs30_Static_Index(  )
 	{
 	}
 
@@ -16,10 +16,10 @@ public:
 	}
 };
 
-#define shaderStaticTest_SimpWound_vs30 1
+#define shaderStaticTest_EllipClip_vs30 1
 
 
-class SimpWound_vs30_Dynamic_Index
+class EllipClip_vs30_Dynamic_Index
 {
 	unsigned int m_nSKINNING : 2;
 	unsigned int m_nCOMPRESSED_VERTS : 2;
@@ -46,7 +46,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWound_vs30_Dynamic_Index(  )
+	EllipClip_vs30_Dynamic_Index(  )
 	{
 		m_nSKINNING = 0;
 		m_nCOMPRESSED_VERTS = 0;
@@ -63,5 +63,5 @@ public:
 	}
 };
 
-#define shaderDynamicTest_SimpWound_vs30 vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_COMPRESSED_VERTS
+#define shaderDynamicTest_EllipClip_vs30 vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_COMPRESSED_VERTS
 

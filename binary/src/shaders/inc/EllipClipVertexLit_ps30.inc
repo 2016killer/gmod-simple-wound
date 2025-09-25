@@ -16,7 +16,7 @@
 
 #pragma once
 #include "shaderlib/cshader.h"
-class SimpWoundVertexLit_ps30_Static_Index
+class EllipClipVertexLit_ps30_Static_Index
 {
 	unsigned int m_nFLASHLIGHT : 2;
 #ifdef _DEBUG
@@ -32,7 +32,7 @@ public:
 #endif	// _DEBUG
 	}
 
-	SimpWoundVertexLit_ps30_Static_Index(  )
+	EllipClipVertexLit_ps30_Static_Index(  )
 	{
 		m_nFLASHLIGHT = 0;
 #ifdef _DEBUG
@@ -47,13 +47,13 @@ public:
 	}
 };
 
-#define shaderStaticTest_SimpWoundVertexLit_ps30 psh_forgot_to_set_static_FLASHLIGHT
+#define shaderStaticTest_EllipClipVertexLit_ps30 psh_forgot_to_set_static_FLASHLIGHT
 
 
-class SimpWoundVertexLit_ps30_Dynamic_Index
+class EllipClipVertexLit_ps30_Dynamic_Index
 {
 public:
-	SimpWoundVertexLit_ps30_Dynamic_Index(  )
+	EllipClipVertexLit_ps30_Dynamic_Index(  )
 	{
 	}
 
@@ -63,5 +63,5 @@ public:
 	}
 };
 
-#define shaderDynamicTest_SimpWoundVertexLit_ps30 1
+#define shaderDynamicTest_EllipClipVertexLit_ps30 1
 
