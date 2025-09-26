@@ -267,7 +267,7 @@ if CLIENT then
 		end
 
 		if IsValid(ent) then
-			if ghostent:GetModel() ~= ent:GetModel() then
+			if ghostent:GetModel() ~= ent:GetModel() or ghostent:GetParent() ~= ent then
 				ghostent:SetModel(ent:GetModel())
 				if ent:IsRagdoll() then
 					ghostent:SetPos(ent:GetPos())
@@ -366,6 +366,12 @@ if CLIENT then
 				render.SetStencilPassOperation(STENCIL_KEEP)
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
+
+				cam.Start2D()
+					surface.SetDrawColor(0, 255, 255, 50)
+					surface.DrawRect(0, 0, ScrW(), ScrH())
+				cam.End2D()
+
 
 				if IsValid(ghostent) then
 					render.MaterialOverride(wireframe)
