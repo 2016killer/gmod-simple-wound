@@ -4,7 +4,30 @@ local function GetBoneMatrix(ent, boneid)
 	if boneid == -1 then
 		return ent:GetWorldTransformMatrix()
 	else
-		return ent:GetBoneMatrix(boneid)
+		local bonematrix = ent:GetBoneMatrix(boneid)
+		if bonematrix then
+			return bonematrix
+		else
+			if CLIENT then
+				local modelname = isfunction(ent.GetModel) and ent:GetModel() or 'unknown model'
+				local bonename = isfunction(ent.GetBoneName) and ent:GetBoneName(boneid) or 'unknown bone'
+
+				surface.PlaySound('Buttons.snd10')
+				notification.AddLegacy(
+					string.format(
+						'%s: %s, %s, %s',
+						language.GetPhrase('sw.err.unknowboneid'),
+						boneid,
+						modelname,
+						bonename
+					),
+					NOTIFY_ERROR, 
+					5
+				)
+			end
+
+			return ent:GetWorldTransformMatrix()
+		end
 	end
 end
 
@@ -505,14 +528,4 @@ SimpWound.GetOffset = function(ent, key)
 	else
 		return offset or SimpWound.Offset.none
 	end
-end
-
-if CLIENT then
-	local mat = Material('sw/test')
-	concommand.Add('shit', function(ply)
-		local ent = ply:GetEyeTrace().Entity
-	
-		ent:SetMaterial('sw/test')
-
-	end)
 end

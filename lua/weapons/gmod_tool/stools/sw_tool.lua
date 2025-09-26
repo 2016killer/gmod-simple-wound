@@ -267,21 +267,24 @@ if CLIENT then
 		end
 
 		if IsValid(ent) then
-			if ghostent:GetModel() ~= ent:GetModel() or ghostent:GetParent() ~= ent then
+			if ghostent:GetModel() ~= ent:GetModel() then
 				ghostent:SetModel(ent:GetModel())
-				if ent:IsRagdoll() then
+				ghostent:SetupBones()
+			end
+
+			if ent:IsRagdoll() then
+				if ghostent:GetParent() ~= ent then
 					ghostent:SetPos(ent:GetPos())
 					ghostent:SetAngles(ent:GetAngles())
 					ghostent:SetParent(ent)
 					ghostent:AddEffects(EF_BONEMERGE)
+					ghostent:SetupBones()
 				end
-				ghostent:SetupBones()
-			end
-			
-			if not ent:IsRagdoll() then
+			else
 				ghostent:SetPos(ent:GetPos())
 				ghostent:SetAngles(ent:GetAngles())
 			end
+
 		end
 
 		self.DrawMarkFlag = !input.IsKeyDown(KEY_E)
@@ -367,17 +370,19 @@ if CLIENT then
 				render.SetStencilFailOperation(STENCIL_KEEP)
 				render.SetStencilZFailOperation(STENCIL_KEEP)
 
+				if IsValid(ghostent) then
+					render.MaterialOverride(wireframe)
+						ghostent:DrawModel()
+					render.MaterialOverride()
+				end
+
 				cam.Start2D()
 					surface.SetDrawColor(0, 255, 255, 50)
 					surface.DrawRect(0, 0, ScrW(), ScrH())
 				cam.End2D()
 
 
-				if IsValid(ghostent) then
-					render.MaterialOverride(wireframe)
-						ghostent:DrawModel()
-					render.MaterialOverride()
-				end
+
 
 				render.SetStencilCompareFunction(STENCIL_ALWAYS)
 				render.SetStencilPassOperation(STENCIL_KEEP)
