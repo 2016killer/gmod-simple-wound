@@ -310,21 +310,6 @@ if CLIENT then
 		end
 	end
 
-	local startpos
-	concommand.Add('mesure', function(ply)
-		if startpos then
-			local endpos = ply:GetEyeTrace().HitPos
-			local dist = (endpos - startpos):Length()
-			print('距离: ' .. dist)
-
-			debugoverlay.Line(endpos, startpos, 1, nil, true)
-
-			startpos = nil
-		else
-			startpos = ply:GetEyeTrace().HitPos
-		end
-	end) 
-
 
 	local function draw_squaredepth(transform, matvar)
 		render.SetMaterial(matvar)
