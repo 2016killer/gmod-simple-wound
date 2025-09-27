@@ -320,7 +320,8 @@ if CLIENT then
 	SimpWound.DepthtexModelPainter = {
 		['sw/spheredepth' ] = draw_spheredepth,
 		['sw/conedepth'] = draw_conedepth,
-		['sw/squaredepth'] = draw_squaredepth
+		['sw/squaredepth'] = draw_squaredepth,
+		['sw/textdepth'] = draw_squaredepth
 	}
 
 end

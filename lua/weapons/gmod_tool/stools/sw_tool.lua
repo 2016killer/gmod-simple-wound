@@ -135,12 +135,6 @@ if CLIENT then
 		end
 
 
-		local items2 = {
-			'sw/spheredepth',
-			'sw/conedepth',
-			'sw/squaredepth',
-		}
-
 		panel:Help('#tool.sw_tool.depthtex')
 		local MatSelect3 = vgui.Create('MatSelect', panel)
 		MatSelect3:Dock(TOP)
@@ -153,7 +147,7 @@ if CLIENT then
 		MatSelect3:SetItemWidth(64)
 		MatSelect3:SetItemHeight(64)
 
-		for k, material in pairs(items2) do
+		for material, _ in pairs(SimpWound.DepthtexModelPainter) do
 			MatSelect3:AddMaterial(material, material)
 		end
 

@@ -1,0 +1,4 @@
+UnlitGeneric {
+    $basetexture "sw/textdepth"
+    $translucent 1
+}
