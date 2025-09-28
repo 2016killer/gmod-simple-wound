@@ -18,6 +18,8 @@ if CLIENT then
 	TOOL.ClientConVar['deformtex'] = 'models/flesh'
 	TOOL.ClientConVar['depthtex'] = 'sw/conedepth'
 
+	TOOL.ClientConVar['litegorec'] = '0'
+
 	function TOOL.BuildCPanel(panel)
 		local ctrl = vgui.Create('ControlPresets', panel)
 		ctrl:SetPreset('sw_tool')
@@ -32,6 +34,7 @@ if CLIENT then
 			sw_tool_projtex = 'models/flesh',
 			sw_tool_deformtex = 'models/flesh',
 			sw_tool_depthtex = 'sw/conedepth',
+			sw_tool_litegorec = '0',
 		}
 		ctrl:AddOption('#preset.default', default)
 		for k, v in pairs(default) do ctrl:AddConVar(k) end
@@ -44,7 +47,6 @@ if CLIENT then
 		shaderComboBox:AddChoice('#sw.depthtexclipvertexlit', 'DepthTexClipVertexLit')
 		shaderComboBox:AddChoice('#sw.simpwound', 'SimpWound')
 		shaderComboBox:AddChoice('#sw.simpwoundvertexlit', 'SimpWoundVertexLit')
-
 
 		panel:NumSlider(
 			'#tool.sw_tool.sx', 
@@ -151,6 +153,10 @@ if CLIENT then
 			MatSelect3:AddMaterial(material, material)
 		end
 
+		panel:CheckBox(
+			'#tool.sw_tool.litegorec', 
+			'sw_tool_litegorec'
+		)
 
 	end
 
@@ -207,14 +213,15 @@ function TOOL:LeftClick(tr)
 		local depthtex = self:GetClientInfo('depthtex')
 		local boneid = ent:TranslatePhysBoneToBone(tr.PhysicsBone)
 		local offset = self:GetClientInfo('offset')
-		
+		local litegorec = self:GetClientNumber('litegorec')
+
 		SimpWound.ApplySimpWoundEasy(
 			ent, 
 			shader,
 			woundWorldTransform,
 			woundsize_blendmode, 
 			deformtex, projtex, depthtex,
-			boneid, offset, true
+			boneid, offset, litegorec, true
 		)
 	end
 

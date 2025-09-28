@@ -107,7 +107,7 @@ if CLIENT then
         end
     end)
 
-	local WoundRender = function(self)
+	local function WoundRender(self)
 		local materials = self.sw_materials
 		local params = self.sw_params
 
@@ -123,6 +123,110 @@ if CLIENT then
 		end
 	end
 
+
+	local fleshMat = Material("models/flesh")
+	local function WoundRender_Compatible_LiteGore(ent)
+		-- 兼容LiteGore的伤口渲染
+		-- 代码修改自LiteGore的RenderWounds函数
+		
+		if not IsValid(ent.goreModel) then
+			WoundRender(ent)
+			return
+		end
+
+		if not ent.LiteGibWounds then
+			WoundRender(ent)
+			return
+		end
+
+		if halo.RenderedEntity() == ent then
+			WoundRender(ent)
+			return
+		end
+
+		if #ent.LiteGibWounds == 0 then
+			WoundRender(ent)
+			return
+		end
+
+		--start off by clearing stencil
+		render.SetStencilWriteMask(0xFF)
+		render.SetStencilTestMask(0xFF)
+		render.SetStencilReferenceValue(0)
+		render.SetStencilCompareFunction(STENCIL_ALWAYS)
+		render.SetStencilPassOperation(STENCIL_KEEP)
+		render.SetStencilFailOperation(STENCIL_KEEP)
+		render.SetStencilZFailOperation(STENCIL_KEEP)
+		render.ClearStencil()
+		--first we write the entity to the stencil buffer with value 1
+		--writing to the depth buffer but not color allows us to clip the wound with the model
+		render.SetStencilEnable(true)
+		render.SetStencilReferenceValue(1)
+		render.SetStencilCompareFunction(STENCIL_ALWAYS)
+		render.SetStencilPassOperation(STENCILOPERATION_REPLACE)
+		render.SetStencilFailOperation(STENCILOPERATION_REPLACE)
+		render.SetStencilZFailOperation(STENCIL_KEEP)
+		render.CullMode(MATERIAL_CULLMODE_CCW)
+		render.OverrideColorWriteEnable(true, false)
+		ent:DrawModel()
+		render.OverrideColorWriteEnable(false, false)
+		--now we write the wound model, which increments the see-through areas to stencil value 2
+		render.SetStencilCompareFunction(STENCIL_EQUAL)
+		render.SetStencilPassOperation(STENCIL_INCR)
+		render.SetStencilFailOperation(STENCIL_KEEP)
+		render.SetStencilZFailOperation(STENCIL_KEEP)
+		render.SetBlend(0)
+		render.OverrideDepthEnable(true, false)
+
+		for _, v in ipairs(ent.LiteGibWounds) do
+			if IsValid(v.model) and v.bone and v.pos and v.ang then
+				local mat = ent:GetBoneMatrix(v.bone)
+
+				if mat then
+					local bpos, bang
+					bpos = mat:GetTranslation()
+					bang = mat:GetAngles()
+					local pos, ang = LocalToWorld(v.pos, v.ang, bpos, bang)
+					v.model:SetupBones()
+					v.model:SetRenderOrigin(pos)
+					v.model:SetRenderAngles(ang)
+					v.model:DrawModel()
+				end
+			end
+		end
+
+		render.OverrideDepthEnable(false, false)
+		render.SetBlend(1)
+		--now we clear the depth of the wound area
+		render.SetStencilPassOperation(STENCIL_KEEP)
+		render.SetStencilFailOperation(STENCIL_KEEP)
+		render.SetStencilZFailOperation(STENCIL_KEEP)
+		render.SetStencilReferenceValue(0)
+		render.SetStencilCompareFunction(STENCIL_NOTEQUAL)
+		render.OverrideColorWriteEnable(true, false)
+		render.ClearBuffersObeyStencil(0, 0, 0, 0, true)
+		render.OverrideColorWriteEnable(false, false)
+		--now we write, in order, the fleshy interior of the model, and the wound model
+		render.SetStencilReferenceValue(2)
+		render.SetStencilCompareFunction(STENCIL_EQUAL)
+		render.ModelMaterialOverride(fleshMat)
+		render.CullMode(MATERIAL_CULLMODE_CW)
+		ent:DrawModel()
+		render.OverrideDepthEnable(true, false)
+		render.CullMode(MATERIAL_CULLMODE_CCW)
+		ent.goreModel:SetupBones()
+		ent.goreModel:DrawModel()
+		render.OverrideDepthEnable(false, false)
+		render.ModelMaterialOverride()
+		render.SetStencilReferenceValue(2)
+		render.SetStencilCompareFunction(STENCIL_NOTEQUAL)
+		WoundRender(ent)
+		render.ClearStencil()
+		render.SetStencilEnable(false)
+	end
+
+
+
 	local AvailableShaders = SimpWound.SWShaders
 	SimpWound.ApplySimpWound = function(ent, params)
 		-- 应用伤口着色器
@@ -130,6 +234,8 @@ if CLIENT then
 		-- params.woundsize_blendmode 必要
 		-- params.deformedtexture 必要
 		-- params.projectedtexture 必要
+		-- params.depthtexture 可选
+		-- params.litegorec 可选
 
 		local shader = params.shader
 		
@@ -185,7 +291,8 @@ if CLIENT then
 		end
 
 		-- 队列方案没找到高效的管理法，就用RenderOverride了，可能会对gpu归并造成一点影响？
-		ent.RenderOverride = WoundRender
+		local litegorec = params.litegorec or 0
+		ent.RenderOverride = litegorec == 1 and WoundRender_Compatible_LiteGore or WoundRender
     end
 
 	net.Receive('sw_apply', function()
@@ -223,8 +330,19 @@ if CLIENT then
 		shader,
 		woundLocalTransform,
 		woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
-		boneid, offset
+		boneid, offset, litegorec
 	)
+		-- ent 必要
+		-- shader 必要
+		-- woundLocalTransform 必要
+		-- woundsize_blendmode 必要
+		-- deformedtexture 必要
+		-- projectedtexture 必要
+		-- depthtexture 可选
+		-- boneid 必要
+		-- offset 必要
+		-- litegorec 可选
+
 		-- 这方法有点傻逼, 但是很有效
 		local model = ent:GetModel()
 		local modelent = ClientModels[model]
@@ -242,6 +360,7 @@ if CLIENT then
 		params.deformedtexture = deformedtexture or 'models/flesh'
 		params.projectedtexture = projectedtexture or 'models/flesh'
 		params.depthtexture = depthtexture or ''
+		params.litegorec = litegorec
 	
 		SimpWound.ApplySimpWound(ent, params)
 	end
@@ -257,13 +376,14 @@ if CLIENT then
 		local depthtexture = net.ReadString()
 		local boneid = net.ReadInt(32)
 		local offset = net.ReadString()
+		local litegorec = net.ReadInt(3)
 
 		if IsValid(ent) then
 			SimpWound.ApplySimpWoundEasy(ent, 
 				shader, 
 				woundLocalTransform, 
 				woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
-				boneid, offset
+				boneid, offset, litegorec
 			)
 		end
     end)
@@ -433,20 +553,13 @@ if SERVER then
 		net.Broadcast()
     end
 
-
-	SimpWound.ApplySimpWound = function(ent, params)
-		net.Start('sw_apply')
-			net.WriteTable(params)
-			net.WriteEntity(ent)
-		net.Broadcast()
-    end
-
 	SimpWound.ApplySimpWoundEasy = function(ent, 
 		shader,
 		woundWorldTransform,
 		woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
-		boneid, offset, save
+		boneid, offset, litegorec, save
 	)
+		litegorec = litegorec or 0
 		local woundLocalTransform = GetBoneMatrix(ent, boneid):GetInverse() * woundWorldTransform
 
 		net.Start('sw_apply_easy')
@@ -459,6 +572,7 @@ if SERVER then
 			net.WriteString(depthtexture)
 			net.WriteInt(boneid, 32)
 			net.WriteString(offset)
+			net.WriteInt(litegorec, 3)
 		net.Broadcast()
 
 		-- 保存副本数据
@@ -476,11 +590,11 @@ if SERVER then
 				projectedtexture = projectedtexture, 
 				depthtexture = depthtexture,
 				boneid = boneid, 
-				offset = offset
+				offset = offset,
+				litegorec = litegorec
 			})
 		end
 	end
-
 
 	duplicator.RegisterEntityModifier('SimpWoundData', function(ply, ent, data)
 		local woundLocalTransform = Matrix()
@@ -500,6 +614,7 @@ if SERVER then
 			net.WriteString(data.depthtexture)
 			net.WriteInt(data.boneid, 32)
 			net.WriteString(data.offset)
+			net.WriteInt(data.litegorec, 3)
 		net.Broadcast()
 	end)
 
