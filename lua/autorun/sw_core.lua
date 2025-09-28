@@ -445,7 +445,7 @@ if SERVER then
 		shader,
 		woundWorldTransform,
 		woundsize_blendmode, deformedtexture, projectedtexture, depthtexture,
-		boneid, offset
+		boneid, offset, save
 	)
 		local woundLocalTransform = GetBoneMatrix(ent, boneid):GetInverse() * woundWorldTransform
 
@@ -460,7 +460,48 @@ if SERVER then
 			net.WriteInt(boneid, 32)
 			net.WriteString(offset)
 		net.Broadcast()
+
+		-- 保存副本数据
+		if save then
+			duplicator.StoreEntityModifier(ent, 'SimpWoundData', {
+				shader = shader,
+				woundLocalTransform = {
+					forward = woundLocalTransform:GetForward(),
+					right = woundLocalTransform:GetRight(),
+					up = woundLocalTransform:GetUp(),
+					t = woundLocalTransform:GetTranslation(),
+				},
+				woundsize_blendmode = woundsize_blendmode, 
+				deformedtexture = deformedtexture, 
+				projectedtexture = projectedtexture, 
+				depthtexture = depthtexture,
+				boneid = boneid, 
+				offset = offset
+			})
+		end
 	end
+
+
+	duplicator.RegisterEntityModifier('SimpWoundData', function(ply, ent, data)
+		local woundLocalTransform = Matrix()
+
+		woundLocalTransform:SetForward(data.woundLocalTransform.forward)
+		woundLocalTransform:SetRight(data.woundLocalTransform.right)
+		woundLocalTransform:SetUp(data.woundLocalTransform.up)
+		woundLocalTransform:SetTranslation(data.woundLocalTransform.t)
+
+		net.Start('sw_apply_easy')
+			net.WriteEntity(ent)
+			net.WriteString(data.shader)
+			net.WriteMatrix(woundLocalTransform)
+			net.WriteVector(data.woundsize_blendmode)
+			net.WriteString(data.deformedtexture)
+			net.WriteString(data.projectedtexture)
+			net.WriteString(data.depthtexture)
+			net.WriteInt(data.boneid, 32)
+			net.WriteString(data.offset)
+		net.Broadcast()
+	end)
 
 
 	concommand.Add('sw_breentest_sv', function(ply)
@@ -488,9 +529,7 @@ if SERVER then
 			net.WriteEntity(ent)
 		net.Broadcast()
 	end
-
 end
-
 
 
 local function auto(ent) 

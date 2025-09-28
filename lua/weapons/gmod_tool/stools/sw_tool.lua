@@ -162,8 +162,6 @@ if CLIENT then
 
 end
 --------------------------------------------------------------
-
-
 function TOOL:RightClick(tr)
 	local ent = tr.Entity
 	if not IsValid(ent) then
@@ -189,8 +187,8 @@ function TOOL:LeftClick(tr)
 		return
 	end
 
-	tr.HitPos = tr.HitPos - tr.Normal * 5
-	if SERVER then
+	if SERVER and IsValid(ent) then
+		tr.HitPos = tr.HitPos - tr.Normal * 5
 		local woundWorldTransform = Matrix()
 		woundWorldTransform:SetTranslation(tr.HitPos)
 		woundWorldTransform:SetAngles(tr.HitNormal:Angle())
@@ -202,20 +200,22 @@ function TOOL:LeftClick(tr)
 			)
 		)
 
-		if IsValid(ent) then
-			SimpWound.ApplySimpWoundEasy(
-				ent, 
-				self:GetClientInfo('shader'),
-				woundWorldTransform,
-				Vector(
-					self:GetClientNumber('ws'), 
-					self:GetClientNumber('bs'),
-					0
-				), 
-				self:GetClientInfo('deformtex'), self:GetClientInfo('projtex'), self:GetClientInfo('depthtex'),
-				ent:TranslatePhysBoneToBone(tr.PhysicsBone), self:GetClientInfo('offset')
-			)
-		end
+		local shader = self:GetClientInfo('shader')
+		local woundsize_blendmode = Vector(self:GetClientNumber('ws'), self:GetClientNumber('bs'), 0)
+		local deformtex = self:GetClientInfo('deformtex')
+		local projtex = self:GetClientInfo('projtex')
+		local depthtex = self:GetClientInfo('depthtex')
+		local boneid = ent:TranslatePhysBoneToBone(tr.PhysicsBone)
+		local offset = self:GetClientInfo('offset')
+		
+		SimpWound.ApplySimpWoundEasy(
+			ent, 
+			shader,
+			woundWorldTransform,
+			woundsize_blendmode, 
+			deformtex, projtex, depthtex,
+			boneid, offset, true
+		)
 	end
 
 	return true
