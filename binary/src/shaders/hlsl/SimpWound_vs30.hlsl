@@ -36,7 +36,8 @@ VS_OUTPUT main( const VS_INPUT v )
 	float fDist = length( vLocalPos.xyz );
 	o.vWoundData = float3(vLocalPos.yz, fDist);
 
-	// 顶点变形(球面投影)
+	// 顶点变形(球面投影), 方向为x轴负方向
+	vLocalPos.x = -abs(vLocalPos.x);
 	float4 vPosWound = mul( 
 		float4(vLocalPos.xyz / max(fDist, 1e-6), 1), 
 		mWoundTransform 

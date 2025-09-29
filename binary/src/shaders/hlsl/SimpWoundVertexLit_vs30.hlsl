@@ -64,12 +64,13 @@ struct VS_OUTPUT
 void SimpWound_Deform(const float4x4 mTransform, const float4x4 mTransformInvert, const float size, 
 	inout float4 vPos, out float3 vWoundData, inout float3 vNormal)
 {
-	// 球面变形
+	// 球面变形, 方向为x轴负方向
 
 	float4 vLocalPos = mul(vPos, mTransformInvert);
 	float fDist = length(vLocalPos.xyz);
 	vWoundData = float3(vLocalPos.yz, fDist);
 
+	vLocalPos.x = -abs(vLocalPos.x);
 	vLocalPos.xyz = vLocalPos.xyz / max(fDist, 1e-6);
 
 	float4 vPosNew = mul( 
