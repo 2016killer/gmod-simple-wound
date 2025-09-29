@@ -35,7 +35,7 @@ end
 
 if CLIENT then
     local modulename = 'simpwound'
-    local version = '1.0.0'
+    local version = '1.0.1'
 
     if not util.IsBinaryModuleInstalled(modulename) then
         ErrorNoHalt(string.format('[SimpWound]: %s\n', language.GetPhrase('sw.missmodule')))
