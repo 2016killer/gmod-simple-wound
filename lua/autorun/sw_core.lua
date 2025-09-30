@@ -1,6 +1,7 @@
 --
 -- for lyt 2025 04 08, 心急强吃热豆腐
-local function GetBoneMatrix(ent, boneid)
+local function GetBoneMatrixSafe(ent, boneid)
+	-- 某些实体可能会返回奇异矩阵
 	if boneid == -1 then
 		return ent:GetWorldTransformMatrix()
 	else
@@ -361,7 +362,7 @@ if CLIENT then
 
 		local params = {}
 
-		params.woundtransform = SimpWound.GetOffset(modelent, offset):GetInverse() * GetBoneMatrix(modelent, boneid) * woundLocalTransform
+		params.woundtransform = SimpWound.GetOffset(modelent, offset):GetInverse() * GetBoneMatrixSafe(modelent, boneid) * woundLocalTransform
 		params.woundsize_blendmode = woundsize_blendmode or Vector(1, 0.5, 0)
 		params.shader = shader or 'SimpWoundVertexLit'
 		params.deformedtexture = deformedtexture or 'models/flesh'
@@ -560,7 +561,7 @@ if SERVER then
 		boneid, offset, litegorec, save
 	)
 		litegorec = litegorec or 0
-		local woundLocalTransform = GetBoneMatrix(ent, boneid):GetInverse() * woundWorldTransform
+		local woundLocalTransform = GetBoneMatrixSafe(ent, boneid):GetInverse() * woundWorldTransform
 
 		net.Start('sw_apply_easy')
 			net.WriteEntity(ent)
@@ -683,4 +684,4 @@ SimpWound.GetOffsetInvert = function(ent, key)
 	end
 end
 
-SimpWound.GetBoneMatrix = GetBoneMatrix
+SimpWound.GetBoneMatrixSafe = GetBoneMatrixSafe
