@@ -5,7 +5,7 @@ if CLIENT then
 	TOOL.Name = '#tool.sw_tool.name'
 
 	TOOL.ClientConVar['shader'] = 'SimpWoundVertexLit'
-	TOOL.ClientConVar['sx'] = '5'
+	TOOL.ClientConVar['sx'] = '10'
 	TOOL.ClientConVar['sy'] = '5'
 	TOOL.ClientConVar['sz'] = '5'
 
@@ -194,6 +194,7 @@ function TOOL:LeftClick(tr)
 	end
 
 	if SERVER and IsValid(ent) then
+		tr.HitPos = tr.HitPos - tr.Normal * 5
 		local woundWorldTransform = Matrix()
 		woundWorldTransform:SetTranslation(tr.HitPos)
 		woundWorldTransform:SetAngles(tr.HitNormal:Angle())
@@ -308,6 +309,7 @@ if CLIENT then
 	function TOOL:DrawMark()
 		-- 标记作用范围
 		local tr = LocalPlayer():GetEyeTrace()
+		tr.HitPos = tr.HitPos - tr.Normal * 5
 
 		local woundEllip = Matrix()
 		woundEllip:SetTranslation(tr.HitPos)
