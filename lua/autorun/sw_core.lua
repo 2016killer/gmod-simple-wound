@@ -326,6 +326,17 @@ if CLIENT then
 	SimpWound.ClientModels = {}
 
 	local ClientModels = SimpWound.ClientModels
+
+	SimpWound.GetClientModel = function(model)
+		local modelent = ClientModels[model]
+		if not IsValid(modelent) then
+			modelent = ClientsideModel(model)
+			modelent:SetNoDraw(true)
+			ClientModels[model] = modelent
+		end
+		return modelent
+	end
+
 	SimpWound.ApplySimpWoundEasy = function(ent, 
 		shader,
 		woundLocalTransform,
@@ -669,3 +680,18 @@ SimpWound.GetOffset = function(ent, key)
 		return offset or SimpWound.Offset.none
 	end
 end
+
+SimpWound.OffsetInvert = {}
+
+SimpWound.GetOffsetInvert = function(ent, key)
+	local offset = SimpWound.OffsetInvert[key]
+	if offset then
+		return offset
+	else
+		offset = SimpWound.GetOffset(ent, key):GetInverse()
+		SimpWound.OffsetInvert[key] = offset
+		return offset
+	end
+end
+
+SimpWound.GetBoneMatrix = GetBoneMatrix
