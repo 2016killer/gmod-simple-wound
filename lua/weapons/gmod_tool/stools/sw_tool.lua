@@ -245,7 +245,6 @@ function TOOL:Reload(tr)
 	// end
 
 	SimpWound.Reset(ent)
-	SimpWound.PrintSWParams(ent)
 
 	return true
 end
@@ -261,7 +260,8 @@ if CLIENT then
 	function TOOL:Think()
 		local tr = LocalPlayer():GetEyeTrace()
 		local ent = tr.Entity
-
+		local hitpos = tr.HitPos - tr.Normal * 5
+		-- 处理幽灵实体
 		if not IsValid(ghostent) then
 			ghostent = ClientsideModel()
 			ghostent:SetNoDraw(true)
@@ -285,10 +285,80 @@ if CLIENT then
 				ghostent:SetPos(ent:GetPos())
 				ghostent:SetAngles(ent:GetAngles())
 			end
-
 		end
 
-		self.DrawMarkFlag = !input.IsKeyDown(KEY_E)
+		-- 计算相关信息
+		self.info = self.info or {}
+		if IsValid(ent) then
+			local boneid = ent:TranslatePhysBoneToBone(tr.PhysicsBone)
+			local bonematrix = ent:GetBoneMatrix(boneid)
+			
+			if bonematrix then
+				// local transform = Matrix()
+				// transform:SetTranslation(hitpos)
+				// transform:SetAngles(tr.HitNormal:Angle())
+				// transform:SetScale(
+				// 	Vector(
+				// 		self:GetClientNumber('sx'), 
+				// 		self:GetClientNumber('sy'), 
+				// 		self:GetClientNumber('sz')
+				// 	)
+				// )
+
+				// transform = bonematrix:GetInverse() * transform
+				// self.info.pos = tostring(transform:GetTranslation())
+				// self.info.ang = tostring(transform:GetAngles())
+				// self.info.scale = tostring(transform:GetScale())
+				self.info.bone = string.format('%d, %s', boneid, ent:GetBoneName(boneid))
+
+				self.DrawInfoFlag = true
+			else
+				self.DrawInfoFlag = false
+			end
+		else
+			self.DrawInfoFlag = false
+		end
+
+		-- 计算标记作用范围
+		self.mark = self.mark or {}
+		if IsValid(ent) then
+			local woundEllip = Matrix()
+			woundEllip:SetTranslation(hitpos)
+			woundEllip:SetAngles(tr.HitNormal:Angle())
+
+			local bloodTexEllip = Matrix() 
+			bloodTexEllip:SetTranslation(hitpos)
+			bloodTexEllip:SetAngles(tr.HitNormal:Angle())
+
+			woundEllip:SetScale(
+				Vector(
+					self:GetClientNumber('sx'), 
+					self:GetClientNumber('sy'), 
+					self:GetClientNumber('sz')
+				) * self:GetClientNumber('ws')
+			)
+
+			bloodTexEllip:SetScale(
+				Vector(
+					self:GetClientNumber('sx'), 
+					self:GetClientNumber('sy'), 
+					self:GetClientNumber('sz')
+				) * (self:GetClientNumber('ws') + self:GetClientNumber('bs'))
+			)	
+
+			self.mark.WoundEllip = woundEllip
+			self.mark.BloodTexEllip = bloodTexEllip
+			self.DrawMarkFlag = !input.IsKeyDown(KEY_E)
+		else
+			self.DrawMarkFlag = false
+		end
+
+		self.PrintFlag = input.IsKeyDown(KEY_R) and !self.KeyR
+		if self.PrintFlag then
+			SimpWound.PrintSWParams(ent)
+		end
+
+		self.KeyR = input.IsKeyDown(KEY_R)
 	end
 
 	function TOOL:DrawMarkModel(transform, matvar)
@@ -308,32 +378,8 @@ if CLIENT then
 
 	function TOOL:DrawMark()
 		-- 标记作用范围
-		local tr = LocalPlayer():GetEyeTrace()
-		tr.HitPos = tr.HitPos - tr.Normal * 5
-
-		local woundEllip = Matrix()
-		woundEllip:SetTranslation(tr.HitPos)
-		woundEllip:SetAngles(tr.HitNormal:Angle())
-
-		local bloodTexEllip = Matrix() 
-		bloodTexEllip:SetTranslation(tr.HitPos)
-		bloodTexEllip:SetAngles(tr.HitNormal:Angle())
-
-		woundEllip:SetScale(
-			Vector(
-				self:GetClientNumber('sx'), 
-				self:GetClientNumber('sy'), 
-				self:GetClientNumber('sz')
-			) * self:GetClientNumber('ws')
-		)
-
-		bloodTexEllip:SetScale(
-			Vector(
-				self:GetClientNumber('sx'), 
-				self:GetClientNumber('sy'), 
-				self:GetClientNumber('sz')
-			) * (self:GetClientNumber('ws') + self:GetClientNumber('bs'))
-		)
+		local woundEllip = self.mark.WoundEllip
+		local bloodTexEllip = self.mark.BloodTexEllip
 
 		cam.Start3D(EyePos(), EyeAngles())
 			render.ClearStencil()
@@ -418,6 +464,27 @@ if CLIENT then
 		cam.End3D()
 	end
 
+	local colorwhite = Color(255, 255, 255)
+	local label_print = language.GetPhrase('#tool.sw_tool.label.print')
+	local label_bone = language.GetPhrase('#tool.sw_tool.label.bone')
+	// local label_lpos = language.GetPhrase('#tool.sw_tool.label.lpos')
+	// local label_lang = language.GetPhrase('#tool.sw_tool.label.lang')
+	function TOOL:DrawInfo()
+		local startY = ScrH() * 0.5
+		surface.SetDrawColor(0, 0, 0, 100)
+		draw.RoundedBox(10, 0, startY, 400, 80, Color(0, 0, 0, 100))
+
+		draw.DrawText(label_print, 'CloseCaption_Bold', 
+			10, startY + 10, colorwhite, TEXT_ALIGN_LEFT)
+		draw.DrawText(label_bone .. ':' .. self.info.bone, 'CloseCaption_Bold', 
+			10, startY + 40, colorwhite, TEXT_ALIGN_LEFT)
+		// draw.DrawText(label_lpos .. ':' .. self.info.pos, 'CloseCaption_Bold', 
+		// 	10, startY + 70, colorwhite, TEXT_ALIGN_LEFT)
+		// draw.DrawText(label_lang .. ':' .. self.info.ang, 'CloseCaption_Bold', 
+		// 	10, startY + 100, colorwhite, TEXT_ALIGN_LEFT)
+	end
+
+
 	function TOOL:DrawHUD()
 		if self.DrawMarkFlag and SimpWound then
 			-- 安全调用
@@ -428,6 +495,10 @@ if CLIENT then
 				render.OverrideDepthEnable(false)
 				return
 			end
+		end
+
+		if self.DrawInfoFlag then
+			self:DrawInfo()
 		end
 	end
 

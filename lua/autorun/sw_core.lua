@@ -82,6 +82,17 @@ if CLIENT then
         cam.PopModelMatrix()
     end
 
+    SimpWound.PrintSWParams = function(ent)
+		-- 打印实体的伤口材质参数
+		print('-----------------')
+        print(ent:GetModel())
+		if istable(ent.sw_params) then
+        	PrintTable(ent.sw_params)
+		else
+			print('no sw_params')
+        end
+		print('-----------------')
+    end
 
 	SimpWound.SWShaders = {
 		['SimpWound'] = {},
@@ -91,21 +102,6 @@ if CLIENT then
 		['DepthTexClip'] = {},
 		['DepthTexClipVertexLit'] = {},
 	}
-
-    SimpWound.PrintSWParams = function(ent)
-		-- 打印实体的伤口材质参数
-        print(ent:GetModel())
-		if istable(ent.sw_params) then
-        	PrintTable(ent.sw_params)
-        end
-    end
-
-    net.Receive('sw_query_params', function()
-        local ent = net.ReadEntity()
-		if IsValid(ent) then
-        	SimpWound.PrintSWParams(ent)
-        end
-    end)
 
 	local function WoundRender(self)
 		local materials = self.sw_materials
@@ -459,7 +455,6 @@ end
 
 
 if SERVER then
-    util.AddNetworkString('sw_query_params')
 	util.AddNetworkString('sw_apply_easy')
 	util.AddNetworkString('sw_apply')
 	util.AddNetworkString('sw_reset')
@@ -550,12 +545,6 @@ if SERVER then
 			phys:Wake()
 		end
 	end
-
-    SimpWound.PrintSWParams = function(ent)
-		net.Start('sw_query_params')
-			net.WriteEntity(ent)
-		net.Broadcast()
-    end
 
 	SimpWound.ApplySimpWound = function(ent, params)
 		net.Start('sw_apply')
